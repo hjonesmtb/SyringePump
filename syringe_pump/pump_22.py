@@ -8,10 +8,11 @@
 		https://www.harvardapparatus.com/media/harvard/pdf/702208_Pump_11_Plus_Manual.pdf
 	"""
 import serial
-
 import time
 
 class Pump():
+	class PumpError(Exception):
+		pass
 
 	""" When a command is sent to the pump, it returns a 3 byte response
 	    CR LF prompt (CR = \r, LF = \n, prompt = one of the symbols below)
@@ -28,6 +29,17 @@ class Pump():
 		self.port.flushOutput()
 		self.port.flushInput()
 
+	def close(self):
+		self.write("KEY")
+		self.port.close()
+
+	def print_state(self, response):
+		try:
+			state = Pump.prompts[response]
+			print(state)
+		except KeyError:
+			raise PumpError("Pump response invalid")
+
 	""" 
 		Basic write operation to the pump.
 		cmd: string with the desired pump command. Must be
@@ -40,87 +52,73 @@ class Pump():
 		command = "{}\r".format(cmd)
 		self.port.write(command.encode())
 
-		response = self.port.read(3).decode("utf-8") # get return, remove CR and LF to isolate prompt
+		response = self.port.read(3).decode("utf-8") # Isolate prompt from CR LF
 
 		return response.strip()	
 
+	""" 
+		Basic query operation to the pump.
+		cmd: string with the desired pump command. Must be
+			 a valid command from page 23 of the data sheet.
+
+		value: The return value from the syringe pum
+		prompt: The return prompt from the syringe pump
+	"""
+	def query(self, cmd):
+		print("query: {}".format(cmd))
+		command = "{}\r".format(cmd)
+		self.port.write(command.encode())
+
+		value = self.port.read(10).decode("utf-8") # Isolate value from CR LF
+		prompt = self.port.read(3).decode("utf-8") # Isolate prompt from CR LF
+
+		return value.strip(), prompt.strip()			
+
+	# Start infusion
 	def infuse(self):
 		response = self.write("RUN")
-		try:
-			state = Pump.prompts[response]
-			print(response)
-		except KeyError:
-			raise PumpError("Pump response invalid")
+		self.print_state(response)
 
+	# Pause infusion
 	def stop(self):
 		response = self.write("STP")
-		try:
-			state = Pump.prompts[response]
-			print(response)
-		except KeyError:
-			raise PumpError("Pump response invalid")
+		self.print_state(response)
 
+	# Set the flow rate
 	def set_rate(self, rate, unit):
 
 		units = { 'uL/min' : 'ULM', 
 				  'mL/min' : 'MLM', 
 				  'uL/hr'  : 'ULH', 
 				  'mL/hr'  : 'MLH'}
+
 		try:
-			response = self.write(units[unit] + str(rate))
-			print(response)
+			unit_code = units[unit]
 		except KeyError:
 			raise PumpError("Invalid unit")		
 
-		try:
-			state = Pump.prompts[response]
-			print(response)
-		except KeyError:
-			raise PumpError("Pump response invalid")
+		response = self.write(units[unit] + str(rate))
 
+		self.print_state(response)
+
+	# Set the syringe diameter
 	def set_diameter(self, diameter):
 		response = self.write("MMD{}".format(diameter))
-		try:
-			state = Pump.prompts[response]
-			print(response)
-		except KeyError:
-			raise PumpError("Pump response invalid")
+		self.print_state(response)
 
+	# Set the target infusion volume
 	def set_volume(self, volume):
 		response = self.write("MLT{}".format(volume))
-		try:
-			state = Pump.prompts[response]
-			print(response)
-		except KeyError:
-			raise PumpError("Pump response invalid")
+		self.print_state(response)
 
+	# Reset the volume accumulator
+	def reset_acc(self):
+		response = self.write("CLV")
+		self.print_state(response)
 
+	# Query the pump for the current accumulated volume	
 	def check_volume(self):
 		value, prompt = self.query("VOL")
+		self.print_state(prompt)
 
-		print('value: ',value)
-		print('prompt: ', prompt)
-		try:
-			state = Pump.prompts[prompt]
-			print(state)
-		except KeyError:
-			raise PumpError("Pump response invalid")
-
-		return value
-
-class PumpError(Exception):
-	pass
-
-if __name__ == '__main__':
-	pump = Pump(11, 1200)
-
-	pump.set_diameter(10)
-	pump.set_rate(1,'mL/min')
-	pump.set_volume(1)
-
-	pump.infuse()
-
-	#time.sleep(5)
-	#pump.stop()
-
-
+		return float(value)
