@@ -56,24 +56,24 @@ class Emstat:
 
     '''Runs deposition, returns T_packages'''
     def depostion(self, dep_time):
-        self.ser.sendData("j") #enables idle packages
+        sendData("j") #enables idle packages
         T_packages = []
         command = potential_to_cmd(self.deposition_potential, False)
         command = 'D' + command
-        self.ser.sendData(command)
+        sendData(command)
         starttime = time.time()
         while char != "T":
             if time.time() - starttime < dep_time:
                 break
-            self.ser.readData(1).decode()
+            readData(1).decode()
 
         while time.time() - starttime < dep_time::
             package = ''
-            char = self.ser.readData(1).decode()
+            char = readData(1).decode()
             while char != "T":
                 if char != '':
                     package = package + char
-                char = self.ser.readData(1).decode()
+                char = readData(1).decode()
             T_packages.append(package)
         potential_T, current_T, noise_T, overload_T, underload_T = process_T(T_packages)
         return [potential_T, current_T, noise_T, overload_T, underload_T]
@@ -145,17 +145,17 @@ class Emstat:
     def run_swv(self):
         T_data = [] #string array to store T packages from measurement (during steady state)
         U_data = [] #string array to store U packages from measurement (during SWV)
-        self.ser.sendData("J") # disables idle packages
-        self.ser.flush() #clears
+        sendData("J") # disables idle packages
+        self.ser.flush() #clears the buffer
         self.ser.read()
-        self.ser.sendData("L") #
+        sendData("L") #
         time.sleep(0.1)
-        ser.sendData(self.swv_params)
+        sendData(self.swv_params)
         try:
             skip_T = False
             n = 0
             while True:
-                char = self.ser.readData(1).decode()
+                char = readData(1).decode()
                 if n > 20:
                     raise ValueError('Reading wrong, no T found in first 20 characters')
                 if char == "T":
@@ -169,13 +169,13 @@ class Emstat:
             if not skip_T:
                 while char != 'U': #Write T poackages as long as no U is read
                     package = ''
-                    char = self.ser.readData(1).decode()
+                    char = readData(1).decode()
                     while char != "T" and char != "M" and char != "U": #M is the present at the end of the last T-package
                         if char != "":
                             package = package + char
-                        char = self.ser.readData(1).decode()
+                        char = readData(1).decode()
                     if char == "M": #read another character if M received, should be a U
-                        char = self.ser.readData(1).decode()
+                        char = readData(1).decode()
                     print(package)
                     if len(package) != 20:
                         raise ValueError('T package not 20 characters')
@@ -183,11 +183,11 @@ class Emstat:
 
             while char != '*': #end condition
                 package = ''
-                char = self.ser.readData(1).decode()
+                char = readData(1).decode()
                 while char != "U" and char != "*":
                     if char != "":
                         package = package + char
-                    char = self.ser.readData(1).decode()
+                    char = readData(1).decode()
                 print(package)
                 if len(package) != 16:
                     raise ValueError('U package not 16 characters')

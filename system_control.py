@@ -84,13 +84,6 @@ def control_windows():
 
     return window, ax, fig_agg
 
-# def sweepSWV(emstat, parameters):
-# 	swv_data = emstat.run_swv()
-# 	return swv_data
-#
-# def pstat_deposition(emstat, deposition_potential):
-#     emstat.set_potential(deposition_potential)
-
 def main():
 
 	COM_select = com_windows()
