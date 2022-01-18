@@ -84,12 +84,12 @@ def control_windows():
 
     return window, ax, fig_agg
 
-def read_pstat(emstat, parameters):
-	swv_data = emstat.run_swv()
-	return swv_data
-
-def pstat_deposition(emstat, deposition_potential):
-    emstat.set_potential(deposition_potential)
+# def sweepSWV(emstat, parameters):
+# 	swv_data = emstat.run_swv()
+# 	return swv_data
+#
+# def pstat_deposition(emstat, deposition_potential):
+#     emstat.set_potential(deposition_potential)
 
 def main():
 
@@ -102,11 +102,6 @@ def main():
 			pump_baud = int(values[1])
 			pstat_com = int(values[2])
 			break
-
-	pump = Pump(pump_com, pump_baud)
-    emstat = Emstat(emstat_com)
-
-	# TODO: connect to pstat using pstat_com
 
 	COM_select.close()
 
@@ -151,7 +146,7 @@ def main():
 
 		# start flow, deposit norfentynal
 		pump.infuse()
-		pstat.deposition() # this takes ~10-20 secs, during which GUI is bricked
+		pstat.deposition(t_dep) # this takes ~10-20 secs, during which GUI is bricked
 
 		# stop flow, run SWV sweep
 		pump.stop()

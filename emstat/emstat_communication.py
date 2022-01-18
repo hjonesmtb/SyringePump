@@ -18,16 +18,10 @@ tEquil = 2 #equilibration time, s, user input 5
 cr_min = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 10uA, 6: 1mA, 7: 10mA, user input
 cr_max = 4 # max current range, user input
 cr = 3 #Starting current range, user input
-e_begin = -0.4 #Start potential, V, user input
-e_end = 0.4 #End potential, V, user input
-e_step = 0.005 # Step potential, V, user input
-amplitude = 0.01 # e_pulse, user input
-freq = 7 #Hz, user input
 Estby = 0.8 #V, user input
 t_stby = 1 #s, user input
 measure_i_forward_reverse = True #user input
-cell_on_post_measure = True #user input
-comport = 'COM10'
+cell_on_post_measure = False #user input
 
 #emstat 3 constants
 dac_factor = 1.599 #DAC factor specific to emstat3
@@ -35,18 +29,20 @@ e_factor = 1.5 #Efactor specific to emstat3
 v_range = 3 #specific to emstat3
 
 class Emstat:
-    def __init__(self, comport):
+    def __init__(self, pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequency):
         try:
-            self.ser = serial.Serial('COM{}'.format(comport), baudrate=230400, timeout = 1)
+            self.ser = serial.Serial('COM{}'.format(pstat_com), baudrate=230400, timeout = 1)
             if self.ser.isOpen():
                 print("port opened successfully")
         except:
             try:
-                self.ser = serial.Serial('COM{}'.format(comport), baudrate=230400, timeout = 1)
+                self.ser = serial.Serial('COM{}'.format(pstat_com), baudrate=230400, timeout = 1)
                 if self.ser.isOpen():
                     print("port opened successfully")
             except:
                 print("COM port is not available")
+        self.swv_params = format_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequency)
+        self.deposition_potential = e_dep
 
     def sendData(self, string):
         self.ser.write(string.encode('ascii'))
@@ -58,19 +54,37 @@ class Emstat:
 	def close(self):
 		self.ser.close()
 
-    def set_potential(potential):
-        command = potential_to_cmd(potential, False)
+    '''Runs deposition, returns T_packages'''
+    def depostion(self, dep_time):
+        self.ser.sendData("j") #enables idle packages
+        T_packages = []
+        command = potential_to_cmd(self.deposition_potential, False)
         command = 'D' + command
         self.ser.sendData(command)
+        starttime = time.time()
+        while char != "T":
+            if time.time() - starttime < dep_time:
+                break
+            self.ser.readData(1).decode()
 
-    '''Runs '''
-    def run_swv(parameters):
-        L_command = format_parameters(parameters)
-        T_data, U_data = run_swv(L_command)
+        while time.time() - starttime < dep_time::
+            package = ''
+            char = self.ser.readData(1).decode()
+            while char != "T":
+                if char != '':
+                    package = package + char
+                char = self.ser.readData(1).decode()
+            T_packages.append(package)
+        potential_T, current_T, noise_T, overload_T, underload_T = process_T(T_packages)
+        return [potential_T, current_T, noise_T, overload_T, underload_T]
+
+    '''Runs swv sweep, returns array with potential, current, overload and underload arrays '''
+    def sweepSWV():
+        T_data, U_data = run_swv()
         potential_T, current_T, noise_T, overload_T, underload_T = process_T(T_data)
         potential_U, current_U, overload_U, underload_U = process_U(U_data)
-        df = pd.DataFrame({'Potential': potential_U, 'Current:': current_U, 'overload': overload_U, 'underload': underload_U})
-        return df
+        data_array = [potential_U, current_U, overload_U, underload_U]
+        return data_array
 
     #Converts bytes to voltage, current, stage, I status and range, Aux input, for Tpackages
     def process_T(T_data):
@@ -128,14 +142,17 @@ class Emstat:
         return potential_array, current_array, overload_array, underload_array
 
     #Runs measurement with defined L command parameter. L command is a string formatted as in p.26 of comm protocol
-    def run_swv(L_command):
+    def run_swv(self):
         T_data = [] #string array to store T packages from measurement (during steady state)
         U_data = [] #string array to store U packages from measurement (during SWV)
         self.ser.sendData("J") # disables idle packages
+        self.ser.flush() #clears
+        self.ser.read()
         self.ser.sendData("L") #
         time.sleep(0.1)
-        ser.sendData(L_command)
+        ser.sendData(self.swv_params)
         try:
+            skip_T = False
             n = 0
             while True:
                 char = self.ser.readData(1).decode()
@@ -143,22 +160,26 @@ class Emstat:
                     raise ValueError('Reading wrong, no T found in first 20 characters')
                 if char == "T":
                     break
+                if char == "U":
+                    skip_T = True #If deposition time is 0, skip T package reading
+                    break
                 if char != "":
                     n += 1
 
-            while char != 'U': #Write T poackages as long as no U is read
-                package = ''
-                char = self.ser.readData(1).decode()
-                while char != "T" and char != "M" and char != "U": #M is the present at the end of the last T-package
-                    if char != "":
-                        package = package + char
+            if not skip_T:
+                while char != 'U': #Write T poackages as long as no U is read
+                    package = ''
                     char = self.ser.readData(1).decode()
-                if char == "M": #read another character if M received, should be a U
-                    char = self.ser.readData(1).decode()
-                print(package)
-                if len(package) != 20:
-                    raise ValueError('T package not 20 characters')
-                T_data.append(package)
+                    while char != "T" and char != "M" and char != "U": #M is the present at the end of the last T-package
+                        if char != "":
+                            package = package + char
+                        char = self.ser.readData(1).decode()
+                    if char == "M": #read another character if M received, should be a U
+                        char = self.ser.readData(1).decode()
+                    print(package)
+                    if len(package) != 20:
+                        raise ValueError('T package not 20 characters')
+                    T_data.append(package)
 
             while char != '*': #end condition
                 package = ''
@@ -180,7 +201,7 @@ class Emstat:
             ser.close()
 
     #Calculates all parameters for square wave voltammetry. See p. 29 of comm protocol
-    def format_parameters():
+    def format_parameters(t_equil, e_begin, e_end, e_step, amplitude, freq):
         #options
         options = 0
         if measure_i_forward_reverse: options += 1024
@@ -194,7 +215,7 @@ class Emstat:
         tPulse = int((1 / (2 * freq) - t_meas_actual) / 0.0000152)
         #potentials
         Econd = potential_to_cmd(e_cond)
-        Edep = potential_to_cmd(e_dep)
+        Edep = potential_to_cmd(0)
         Ebegin = potential_to_cmd(e_begin)
         Estep = int(e_step * 10000) #not sure why
         Epulse = int(amplitude * 10000) #not sure why
