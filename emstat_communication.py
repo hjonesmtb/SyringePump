@@ -66,7 +66,7 @@ def main():
     df = pd.DataFrame({'Potential': potential_U, 'Current:': current_U, 'overload': overload_U, 'underload': underload_U})
     df.to_csv('test.csv')
 
-#Converts bytes to voltage, current, stage, I status and range, Aux input, for Tpackages
+#Converts bytes to voltage, current, stage, I status and range, Aux input, for T packages. See p. 9 of comm protocol
 def process_T(T_data):
     potential_array = []
     current_array = []
@@ -94,7 +94,7 @@ def process_T(T_data):
         underload_array.append(current_underload)
     return potential_array, current_array, noise_array, overload_array, underload_array
 
-#processses U byte packages into voltage and current
+#Converts bytes to voltage, current, stage, I status and range, Aux input, for U packages. See p. 7 of comm protocol
 def process_U(U_data):
     potential_array = []
     current_array = []
@@ -129,7 +129,7 @@ def run_measurement(L_command):
     U_data = [] #string array to store U packages from measurement (during SWV)
     ser = SerialWrapper(comport)
     ser.sendData("J") # disables idle packages
-    ser.sendData("L") #
+    ser.sendData("L") #tells the emstat a command is coming
     time.sleep(0.1)
     ser.sendData(L_command)
     try:
@@ -143,7 +143,7 @@ def run_measurement(L_command):
             if char != "":
                 n += 1
 
-        while char != 'U': #Write T poackages as long as
+        while char != 'U': #Write T poackages
             package = ''
             char = ser.readData(1).decode()
             while char != "T" and char != "M" and char != "U": #M is the present at the end of the last T-package
