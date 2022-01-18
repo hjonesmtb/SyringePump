@@ -6,6 +6,7 @@ from matplotlib.figure import Figure
 import numpy as np
 
 from syringe_pump.pump_22 import Pump
+from emstat.emstat_communication import Emstat
 
 
 
@@ -17,6 +18,7 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     return figure_canvas_agg
 
 #boiler plate code for start page. Choose COM ports
+#TODO: define new variable emstat_com
 def com_windows():
     layout = [
 			     [sg.Text('Valve Control', size=(40, 1),
@@ -37,10 +39,10 @@ def com_windows():
 
     canvas_elem = window['-CANVAS-']
     canvas = canvas_elem.TKCanvas
-    
+
     return window
 
-#boiler plate code for entering parameters 
+#boiler plate code for entering parameters
 def control_windows():
     layout = [
 			     [sg.Text('Valve Control', size=(40, 1),
@@ -68,13 +70,15 @@ def control_windows():
     fig = Figure()
     ax = fig.add_subplot(111)
     fig_agg = draw_figure(canvas, fig)
-    
+
     return window, ax, fig_agg
 
-# TODO: implement this method so that all the data from a single DPV sweep is stored somewhere (CSV file probably)
-def read_pstat():
-	time.sleep(1)
-	return [np.linspace(-0.4,0.4,100), np.random.rand(100,1)]
+def read_pstat(emstat, parameters):
+	swv_data = emstat.run_swv()
+	return swv_data
+
+def pstat_deposition(emstat, deposition_potential):
+    emstat.set_potential(deposition_potential)
 
 def main():
 
@@ -89,8 +93,9 @@ def main():
 			break
 
 	pump = Pump(pump_com, pump_baud)
+    emstat = Emstat(emstat_com)
 
-	# TODO: connect to pstat using pstat_com 
+	# TODO: connect to pstat using pstat_com
 
 	COM_select.close()
 
@@ -123,11 +128,12 @@ def main():
 	while True:
 
 		if pump_on:
+            pstat_deposition(deposition_potential) #TODO define a user inputted value called deposition_potential
 			pump.infuse()	# Run flow for 5s between DPV sweeps. Fentanyl --> Norfentanyl
 			window.read(period)
 		else:
-			pump.stop() 	# While flow is stopped, store pstat data in csv 
-			IV = read_pstat()  
+			pump.stop() 	# While flow is stopped, store pstat data in csv
+			IV = read_pstat(emstat, parameters) #TODO make an array called parameters [t equilibration, e begin, e end, e step, amplitude]
 
 		pump_on = not pump_on
 
@@ -141,6 +147,7 @@ def main():
 		if abs(pump.check_volume() - volume) < 0.01:
 			pump.stop()
 			pump.close()
+            emstat.close()
 			break
 
 	window.close()

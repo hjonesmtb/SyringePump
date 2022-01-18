@@ -1,4 +1,4 @@
-#Questions: WHat is auxillary?
+#Questions: What is auxillary?
 
 import serial
 import numpy as np
@@ -13,7 +13,7 @@ technique = 2 #square wave voltammetry
 e_cond = 0 #conditioning potential, V, user input
 tCond = 0 #conditioning time, s, user input
 e_dep = 0.8 #deposition potential, V, user input
-tDep = 2 #depostion time, s, user input 60
+tDep = 0 #depostion time, s, user input 60
 tEquil = 2 #equilibration time, s, user input 5
 cr_min = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 10uA, 6: 1mA, 7: 10mA, user input
 cr_max = 4 # max current range, user input
