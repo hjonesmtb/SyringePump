@@ -86,79 +86,83 @@ def control_windows():
 
 def main():
 
-	COM_select = com_windows()
-	while True:
-		event, values = COM_select.read(timeout=10)
+    COM_select = com_windows()
+    while True:
+        event, values = COM_select.read(timeout=10)
 
-		if event in ('Submit', None):
-			pump_com = int(values[0])
-			pump_baud = int(values[1])
-			pstat_com = int(values[2])
-			break
+        if event in ('Submit', None):
+            pump_com = int(values[0])
+            pump_baud = int(values[1])
+            pstat_com = int(values[2])
+            break
 
-	COM_select.close()
+    COM_select.close()
 
-	window, ax, fig_agg = control_windows()
+    window, ax, fig_agg = control_windows()
 
-	# Measurement parameters
-	flow_rate, volume = 0,0
-	e_cond, e_dep, e_begin, e_end, e_step = 0,0,0,0,0
-	t_cond, t_dep, t_equil = 0,0,0
-	amplitude, frequency = 0, 0
+    # Measurement parameters
+    flow_rate, volume = 0,0
+    e_cond, e_dep, e_begin, e_end, e_step = 0,0,0,0,0
+    t_cond, t_dep, t_equil = 0,0,0
+    amplitude, frequency = 0, 0
 
-	# Enter measurement parameters and start pumping
-	while True:
-		event, values = window.read(timeout=10)
+    # Enter measurement parameters and start pumping
+    while True:
+        event, values = window.read(timeout=10)
 
-		if event in ('Start', None):
+        if event in ('Start', None):
+            flow_rate, volume = int(values[0]), int(values[1])
 
-			flow_rate, volume = int(values[0]), int(values[1])
+            e_cond, t_cond = float(values[2]), float(values[3])
+            e_dep, t_dep = float(values[4]), int(values[5])
+            t_equil = float(values[6])
+            e_begin, e_end, e_step = float(values[7]), float(values[8]), float(values[9])
+            amplitude, frequency = float(values[10]), float(values[11])
+            break
 
-			e_cond, t_cond = float(values[2]), float(values[3])
-			e_dep, t_dep = float(values[4]), int(values[5])
-			t_equil = float(values[6])
-			e_begin, e_end, e_step = float(values[7]), float(values[8]), float(values[9])
-			amplitude, frequency = float(values[10]), float(values[11])
-			break
+    # connect to pump
+    # Pump comment out
+    # pump = Pump(pump_com, pump_baud)
+    #
+    # pump.set_diameter(10) # Fixed syringe diameter
+    # pump.set_rate(flow_rate,'uL/min')
+    # pump.set_volume(volume)
+    # pump.reset_acc() # reset accumulated volume to zero
 
-	# connect to pump
-	pump = Pump(pump_com, pump_baud)
+    # connect to emstat; the parameters could be a list or dictionary
+    pstat = Emstat(pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequency)
 
-	pump.set_diameter(10) # Fixed syringe diameter
-	pump.set_rate(flow_rate,'uL/min')
-	pump.set_volume(volume)
-	pump.reset_acc() # reset accumulated volume to zero
-
-	# connect to emstat; the parameters could be a list or dictionary
-	pstat = Emstat(pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequency)
-
-	IV = [np.zeros(100), np.zeros(100)]
+    IV = [np.zeros(100), np.zeros(100)]
 
 	# toggle flow on/off while measuring pstat
-	while True:
+    while True:
+        # start flow, deposit norfentynal
+        pump.infuse()
+        pstat.deposition(t_dep) # this takes ~10-20 secs, during which GUI is bricked
 
-		# start flow, deposit norfentynal
-		pump.infuse()
-		pstat.deposition(t_dep) # this takes ~10-20 secs, during which GUI is bricked
+        stop flow, run SWV sweep
+        pump.stop()
+        IV = pstat.sweepSWV() # this takes ~10-20 secs, during which GUI is bricked
 
-		# stop flow, run SWV sweep
-		pump.stop()
-		IV = pstat.sweepSWV() # this takes ~10-20 secs, during which GUI is bricked
+        ax.grid() # draw the grid
+        ax.plot(IV[0],IV[1]) #plot new pstat readings
+        print(IV[0])
+        print(IV[1])
+        ax.set_xlabel('Voltage')
+        ax.set_ylabel('Current')
+        fig_agg.draw()
+        window.read(100)
+        time.sleep(20)
+        break
 
-		ax.grid() # draw the grid
-		ax.plot(IV[0],IV[1]) #plot new pstat readings
-		ax.set_xlabel('Voltage')
-		ax.set_ylabel('Current')
-		fig_agg.draw()
-
-		# Stop program when we've pumped all the sample
-		if abs(pump.check_volume() - volume) < 0.01:
-			pump.stop()
-			pump.close()
-            emstat.close()
-			break
-
-	window.close()
+        # Stop program when we've pumped all the sample
+        if abs(pump.check_volume() - volume) < 0.01:
+        	pump.stop()
+        	pump.close()
+            pstat.close()
+        # 	break
+    time.sleep(200)
+    window.close()
 
 if __name__ == '__main__':
 	main()
