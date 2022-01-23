@@ -26,8 +26,8 @@ class Pump():
 
 	def __init__(self, port, baudrate):
 		self.port = serial.Serial(port = 'COM{}'.format(port), stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
-		self.port.flushOutput()
 		self.port.flushInput()
+		self.port.flushOutput()
 
 	def close(self):
 		self.write("KEY")

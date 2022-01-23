@@ -18,7 +18,7 @@ def com_windows():
     layout = [
 			     [sg.Text('Pump Control', size=(40, 1),
 					justification='center', font='Helvetica 20')],
-       			 [sg.Text('Syringe Pump COM', size=(15, 1), font='Helvetica 12'), sg.InputText('12')],
+       			 [sg.Text('Syringe Pump COM', size=(15, 1), font='Helvetica 12'), sg.InputText('4')],
        			 [sg.Text('Syringe Pump Baudrate', size=(15, 1), font='Helvetica 12'), sg.InputText('1200')],
        			 [sg.Text('PStat COM', size=(15, 1), font='Helvetica 12'), sg.InputText('6')],
 
@@ -121,6 +121,7 @@ def main():
 			amplitude, frequency = float(values[10]), float(values[11])
 			break
 
+
 	# connect to pump
 	pump = Pump(pump_com, pump_baud)
 
@@ -130,7 +131,7 @@ def main():
 	pump.reset_acc() # reset accumulated volume to zero
 
 	# connect to emstat; the parameters could be a list or dictionary
-	pstat = Emstat(pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequency)
+	#pstat = Emstat(pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequency)
 
 	IV = [np.zeros(100), np.zeros(100)]
 
@@ -139,11 +140,13 @@ def main():
 
 		# start flow, deposit norfentynal 
 		pump.infuse()
-		pstat.deposition() # this takes ~10-20 secs, during which GUI is bricked
+		#pstat.deposition() # this takes ~10-20 secs, during which GUI is bricked
+		window.read(timeout = 1000)
 
 		# stop flow, run SWV sweep
 		pump.stop()
-		IV = pstat.sweepSWV() # this takes ~10-20 secs, during which GUI is bricked
+		#IV = pstat.sweepSWV() # this takes ~10-20 secs, during which GUI is bricked
+		window.read(timeout = 1000)
 
 		ax.grid() # draw the grid
 		ax.plot(IV[0],IV[1]) #plot new pstat readings
