@@ -6,7 +6,6 @@ import binascii
 import time
 import math
 import numpy as np
-import pandas as pd
 
 #User inputs
 technique = 2 #square wave voltammetry

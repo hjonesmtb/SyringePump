@@ -122,13 +122,12 @@ def main():
             break
 
     # connect to pump
-    # Pump comment out
-    # pump = Pump(pump_com, pump_baud)
-    #
-    # pump.set_diameter(10) # Fixed syringe diameter
-    # pump.set_rate(flow_rate,'uL/min')
-    # pump.set_volume(volume)
-    # pump.reset_acc() # reset accumulated volume to zero
+    pump = Pump(pump_com, pump_baud)
+    
+    pump.set_diameter(10) # Fixed syringe diameter
+    pump.set_rate(flow_rate,'uL/min')
+    pump.set_volume(volume)
+    pump.reset_acc() # reset accumulated volume to zero
 
     # connect to emstat; the parameters could be a list or dictionary
     pstat = Emstat(pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequency)
@@ -142,7 +141,7 @@ def main():
         pump.infuse()
         pstat.deposition(t_dep) # this takes ~10-20 secs, during which GUI is bricked
 
-        stop flow, run SWV sweep
+        #stop flow, run SWV sweep
         pump.stop()
         IV = pstat.sweepSWV() # this takes ~10-20 secs, during which GUI is bricked
 
@@ -153,16 +152,15 @@ def main():
         ax.set_xlabel('Voltage')
         ax.set_ylabel('Current')
         fig_agg.draw()
-        window.read(100)
-        time.sleep(20)
-        break
+        window.read(10)
 
         # Stop program when we've pumped all the sample
         if abs(pump.check_volume() - volume) < 0.01:
-        	pump.stop()
-        	pump.close()
+            pump.stop()
+            pump.close()
             pstat.close()
-        # 	break
+            break
+
     time.sleep(200)
     window.close()
 
