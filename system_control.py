@@ -123,7 +123,7 @@ def main():
 
     # connect to pump
     pump = Pump(pump_com, pump_baud)
-    
+
     pump.set_diameter(10) # Fixed syringe diameter
     pump.set_rate(flow_rate,'uL/min')
     pump.set_volume(volume)
@@ -149,8 +149,8 @@ def main():
         ax.plot(IV[0],IV[1]) #plot new pstat readings
         print(IV[0])
         print(IV[1])
-        ax.set_xlabel('Voltage')
-        ax.set_ylabel('Current')
+        ax.set_xlabel('Potential (V)')
+        ax.set_ylabel('Current (uA)')
         fig_agg.draw()
         window.read(10)
 
