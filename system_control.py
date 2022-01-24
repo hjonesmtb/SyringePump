@@ -32,7 +32,7 @@ def com_windows():
 
     # create the form and show it without the plot
     window = sg.Window('Start Screen',
-                layout, finalize=True)
+                layout, finalize=True, resizable=True)
 
     canvas_elem = window['-CANVAS-']
     canvas = canvas_elem.TKCanvas
@@ -72,7 +72,7 @@ def control_windows():
 		      ]
 
     window = sg.Window('Start Screen',
-                layout, finalize=True)
+                layout, finalize=True, resizable=True)
 
     canvas_elem = window['-CANVAS-']
     canvas = canvas_elem.TKCanvas
