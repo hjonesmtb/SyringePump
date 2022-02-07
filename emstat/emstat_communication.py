@@ -11,14 +11,10 @@ import numpy as np
 technique = 2 #square wave voltammetry
 e_cond = 0 #conditioning potential, V, user input
 tCond = 0 #conditioning time, s, user input
-e_dep = 0.8 #deposition potential, V, user input
 tDep = 0 #depostion time, s, user input 60
-tEquil = 2 #equilibration time, s, user input 5
 cr_min = 0 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 10uA, 6: 1mA, 7: 10mA, user input
 cr_max = 7 # max current range, user input
 cr = 3 #Starting current range, user input
-Estby = 0.8 #V, user input
-t_stby = 1 #s, user input
 measure_i_forward_reverse = True #user input
 cell_on_post_measure = False #user input
 
