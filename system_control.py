@@ -37,7 +37,7 @@ def collapse(layout, key):
 #boiler plate code for start page. Choose COM ports
 #TODO: define new variable emstat_com
 def com_windows():
-    usbs = list_ports.ListPortInfo
+    usbs = list_ports.comports()
     layout = [
 			     [sg.Text('Pump Control', size=(40, 1),
 					justification='center', font='Helvetica 20')],
