@@ -9,7 +9,7 @@ import os
 from datetime import datetime
 import pandas as pd
 
-import serial
+from serial.tools import list_ports
 from syringe_pump.pump_22 import Pump
 from emstat.emstat_communication import Emstat
 
@@ -37,7 +37,7 @@ def collapse(layout, key):
 #boiler plate code for start page. Choose COM ports
 #TODO: define new variable emstat_com
 def com_windows():
-    usbs = serial.tools.list_ports.ListPortInfo
+    usbs = list_ports.ListPortInfo
     layout = [
 			     [sg.Text('Pump Control', size=(40, 1),
 					justification='center', font='Helvetica 20')],

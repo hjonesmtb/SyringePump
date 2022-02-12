@@ -25,7 +25,8 @@ class Pump():
 	    '*': 'stalled' }
 
 	def __init__(self, port, baudrate):
-		self.port = serial.Serial(port = 'COM{}'.format(port), stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
+		#self.port = serial.Serial(port = 'COM{}'.format(port), stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
+		self.port = serial.Serial(port = port, stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
 		self.port.flushInput()
 		self.port.flushOutput()
 
