@@ -41,9 +41,11 @@ def com_windows():
     layout = [
 			     [sg.Text('Pump Control', size=(40, 1),
 					justification='center', font='Helvetica 20')],
-       			 [sg.Combo(usbs.device)],
+                 [sg.Text('Syringe Pump Communication', size=(15, 1), font='Helvetica 12')],
+       			 [sg.Combo(usbs)],
        			 [sg.Text('Syringe Pump Baudrate', size=(15, 1), font='Helvetica 12'), sg.InputText('1200')],
-       			 [sg.Combo(usbs.device)],
+                 [sg.Text('Pstat Communication', size=(15, 1), font='Helvetica 12')],
+       			 [sg.Combo(usbs)],
 
 		         [sg.Canvas(key='controls_cv')],
                  [sg.Canvas(size=(650, 30), key='-CANVAS-')],
@@ -119,9 +121,9 @@ def main():
         event, values = COM_select.read(timeout=10)
 
         if event in ('Submit', None):
-            pump_com = int(values[0])
+            pump_com = values[0]
             pump_baud = int(values[1])
-            pstat_com = int(values[2])
+            pstat_com = values[2]
             break
 
     COM_select.close()
