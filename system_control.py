@@ -20,9 +20,9 @@ def com_windows():
     layout = [
 			     [sg.Text('Pump Control', size=(40, 1),
 					justification='center', font='Helvetica 20')],
-       			 [sg.Text('Syringe Pump COM', size=(15, 1), font='Helvetica 12'), sg.InputText('4')],
+       			 [sg.Text('Syringe Pump COM', size=(15, 1), font='Helvetica 12'), sg.InputText('10')],
        			 [sg.Text('Syringe Pump Baudrate', size=(15, 1), font='Helvetica 12'), sg.InputText('1200')],
-       			 [sg.Text('PStat COM', size=(15, 1), font='Helvetica 12'), sg.InputText('6')],
+       			 [sg.Text('PStat COM', size=(15, 1), font='Helvetica 12'), sg.InputText('7')],
 
 		         [sg.Canvas(key='controls_cv')],
                  [sg.Canvas(size=(650, 30), key='-CANVAS-')],
@@ -54,12 +54,12 @@ def control_windows():
 				 [sg.Text('E condition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
 				 [sg.Text('t condition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
 				 [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.8')],
-				 [sg.Text('t deposition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('60')],
+				 [sg.Text('t deposition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('3')],
 
 				[sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
 				[sg.Text('E begin [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('-0.4')],
 				[sg.Text('E stop [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.4')],
-				[sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.005')],
+				[sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.05')],
 				[sg.Text('Amplitude [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.01')],
 				[sg.Text('Frequency [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText('7')],
 
@@ -147,13 +147,12 @@ def main():
 
         ax.grid() # draw the grid
         ax.plot(IV[0],IV[1]) #plot new pstat readings
-        print(IV[0])
-        print(IV[1])
         ax.set_xlabel('Voltage')
         ax.set_ylabel('Current')
         fig_agg.draw()
-        window.read(10)
+        window.read(100)
 
+        print('1 loop')
         # Stop program when we've pumped all the sample
         if abs(pump.check_volume() - volume) < 0.01:
             pump.stop()
@@ -161,7 +160,6 @@ def main():
             pstat.close()
             break
 
-    time.sleep(200)
     window.close()
 
 if __name__ == '__main__':
