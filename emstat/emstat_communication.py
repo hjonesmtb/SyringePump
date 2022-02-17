@@ -9,9 +9,6 @@ import numpy as np
 
 #User inputs
 technique = 2 #square wave voltammetry
-e_cond = 0 #conditioning potential, V, user input
-tCond = 0 #conditioning time, s, user input
-tDep = 0 #depostion time, s, user input 60
 cr_min = 0 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 10uA, 6: 1mA, 7: 10mA, user input
 cr_max = 7 # max current range, user input
 cr = 3 #Starting current range, user input
@@ -37,7 +34,7 @@ class Emstat:
                     print("port opened successfully")
             except:
                 print("COM port is not available")
-        self.swv_params = self.format_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequency)
+        self.swv_params = self.format_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequency, e_cond, t_cond)
         self.deposition_potential = e_dep
 
     def sendData(self, string):
@@ -203,7 +200,7 @@ class Emstat:
             self.ser.close()
 
     #Calculates all parameters for square wave voltammetry. See p. 29 of comm protocol
-    def format_parameters(self, t_equil, e_begin, e_end, e_step, amplitude, freq):
+    def format_parameters(self, t_equil, e_begin, e_end, e_step, amplitude, freq, e_cond, t_cond):
         #options
         options = 0
         if measure_i_forward_reverse: options += 1024
@@ -224,7 +221,11 @@ class Emstat:
         #tInt
         tInt = self.tint_calc(freq)
         #format ascii command
-        L_command = "technique={}\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil={}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstep={}\nEpulse={}\nnPoints={}\ntInt={}\ntPulse={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format(technique, Econd, tCond, Edep, tDep, t_equil, cr_min, cr_max, cr, Ebegin, Estep, Epulse, nPoints, tInt, tPulse, d1, d16, options, nadmean)
+        L_command = ("technique={}\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
+        {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstep={}\nEpulse={}\nnPoints= \
+        {}\ntInt={}\ntPulse={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
+        (technique, e_cond, t_cond, 0, 0, t_equil, cr_min, cr_max, cr, Ebegin, \
+        Estep, Epulse, nPoints, tInt, tPulse, d1, d16, options, nadmean))
         print(L_command)
         return L_command
 
