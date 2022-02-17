@@ -1,3 +1,10 @@
+"""
+Serial library
+https://pyserial.readthedocs.io/en/latest/tools.html
+
+"""
+
+
 import time
 
 import PySimpleGUI as sg
@@ -37,15 +44,23 @@ def collapse(layout, key):
 #boiler plate code for start page. Choose COM ports
 #TODO: define new variable emstat_com
 def com_windows():
+
+    #creates a list of the names of all current usb devices.
     usbs = list_ports.comports()
+    
+    portName = []
+    for usb in usbs:
+        portName.append(usb.name)
+    
     layout = [
 			     [sg.Text('Pump Control', size=(40, 1),
 					justification='center', font='Helvetica 20')],
-                 [sg.Text('Syringe Pump Communication', size=(15, 1), font='Helvetica 12')],
-       			 [sg.Combo(usbs)],
+                 [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12')],
+                 [sg.Combo(usbs)],
+       			 [sg.Combo(portName)],
        			 [sg.Text('Syringe Pump Baudrate', size=(15, 1), font='Helvetica 12'), sg.InputText('1200')],
-                 [sg.Text('Pstat Communication', size=(15, 1), font='Helvetica 12')],
-       			 [sg.Combo(usbs)],
+                 [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12')],
+       			 [sg.Combo(portName)],
 
 		         [sg.Canvas(key='controls_cv')],
                  [sg.Canvas(size=(650, 30), key='-CANVAS-')],
@@ -118,12 +133,12 @@ def main():
     opened1 = True
     COM_select = com_windows()
     while True:
-        event, values = COM_select.read(timeout=10)
+        event, comReadout = COM_select.read(timeout=10)
 
         if event in ('Submit', None):
-            pump_com = values[0]
-            pump_baud = int(values[1])
-            pstat_com = values[2]
+            pump_com = comReadout[1]
+            pump_baud = int(comReadout[2])
+            pstat_com = comReadout[3]
             break
 
     COM_select.close()

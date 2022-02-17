@@ -12,6 +12,10 @@ import time
 
 class Pump():
 	class PumpError(Exception):
+		def __init__(self, *args: object) -> None:
+			super().__init__(*args)
+		def __str__(self) -> str:
+			return super().__str__()
 		pass
 
 	""" When a command is sent to the pump, it returns a 3 byte response
@@ -24,22 +28,27 @@ class Pump():
 	    '<': 'reverse',
 	    '*': 'stalled' }
 
-	def __init__(self, port, baudrate):
-		#self.port = serial.Serial(port = 'COM{}'.format(port), stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
-		self.port = serial.Serial(port = port, stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
-		self.port.flushInput()
-		self.port.flushOutput()
+	def __init__(self, ser, baudrate):
+		#self.port = serial.Serial(port = 'COM{}', stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
+		try:
+			self.ser = serial.Serial(port = ser, stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
+			if self.ser.inWaiting():
+				print("port opened successfully")
+		except:
+			print("COM port is not available")
+		self.ser.flushInput()
+		self.ser.flushOutput()
 
 	def close(self):
 		self.write("KEY")
-		self.port.close()
+		self.ser.close()
 
 	def print_state(self, response):
 		try:
 			state = Pump.prompts[response]
 			print(state)
 		except KeyError:
-			raise PumpError("Pump response invalid")
+			raise PumpError
 
 	""" 
 		Basic write operation to the pump.
@@ -51,9 +60,9 @@ class Pump():
 	def write(self, cmd):
 		print("write: {}".format(cmd))
 		command = "{}\r".format(cmd)
-		self.port.write(command.encode())
+		self.ser.write(command.encode())
 
-		response = self.port.read(3).decode("utf-8") # Isolate prompt from CR LF
+		response = self.ser.read(3).decode("utf-8") # Isolate prompt from CR LF
 
 		return response.strip()	
 
@@ -68,10 +77,10 @@ class Pump():
 	def query(self, cmd):
 		print("query: {}".format(cmd))
 		command = "{}\r".format(cmd)
-		self.port.write(command.encode())
+		self.ser.write(command.encode())
 
-		value = self.port.read(10).decode("utf-8") # Isolate value from CR LF
-		prompt = self.port.read(3).decode("utf-8") # Isolate prompt from CR LF
+		value = self.ser.read(10).decode("utf-8") # Isolate value from CR LF
+		prompt = self.ser.read(3).decode("utf-8") # Isolate prompt from CR LF
 
 		return value.strip(), prompt.strip()			
 
