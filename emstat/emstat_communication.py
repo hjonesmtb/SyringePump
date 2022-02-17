@@ -11,14 +11,10 @@ import numpy as np
 technique = 2 #square wave voltammetry
 e_cond = 0 #conditioning potential, V, user input
 tCond = 0 #conditioning time, s, user input
-e_dep = 0.8 #deposition potential, V, user input
 tDep = 0 #depostion time, s, user input 60
-tEquil = 2 #equilibration time, s, user input 5
-cr_min = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 10uA, 6: 1mA, 7: 10mA, user input
-cr_max = 4 # max current range, user input
+cr_min = 0 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 10uA, 6: 1mA, 7: 10mA, user input
+cr_max = 7 # max current range, user input
 cr = 3 #Starting current range, user input
-Estby = 0.8 #V, user input
-t_stby = 1 #s, user input
 measure_i_forward_reverse = True #user input
 cell_on_post_measure = False #user input
 
@@ -30,12 +26,13 @@ v_range = 3 #specific to emstat3
 class Emstat:
     def __init__(self, pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequency):
         try:
-            self.ser = serial.Serial('COM{}'.format(pstat_com), baudrate=230400, timeout = 1)
+            #self.ser = serial.Serial('COM{}'.format(pstat_com), baudrate=230400, timeout = 1)
+            self.ser = serial.Serial(str(pstat_com), baudrate=230400, timeout = 1)
             if self.ser.isOpen():
                 print("port opened successfully")
         except:
             try:
-                self.ser = serial.Serial('COM{}'.format(pstat_com), baudrate=230400, timeout = 1)
+                self.ser = serial.Serial(pstat_com, baudrate=230400, timeout = 1)
                 if self.ser.isOpen():
                     print("port opened successfully")
             except:
@@ -102,11 +99,11 @@ class Emstat:
             current_underload = False
             print(T_data[2:4])
             potential = ((int(data[2:4], 16) * 256 + int(data[0:2], 16)) / 65536 * 4.096 - 2.048) * e_factor
-            current_range = 10 ^ (int(data[10:12] and '0F', 16))
-            if (data[10:12] and '20' == '20'):
+            current_range = 10 ** int(int(data[10:12], 16) & int('0F', 16))
+            if (int(data[10:12], 16) & int('20', 16) == int('20', 16)):
                 current_overload = True
                 print("current overload")
-            if (data[10:12] and '40' == '40'):
+            if (int(data[10:12], 16) & int('40', 16) == int('40', 16)):
                 current_underload = True
                 print("current underload")
             current = ((int(data[6:8], 16) * 256 + int(data[4:6], 16)) / 65536 * 4.096 - 2.048) * current_range / 10**(3)
@@ -127,16 +124,16 @@ class Emstat:
             current_overload = False
             current_underload = False
             potential = ((int(data[2:4], 16) * 256 + int(data[0:2], 16)) / 65536 * 4.096 - 2.048) * dac_factor
-            current_range = 10 ** (int(data[10:12] and '0F', 16))
+            current_range = 10 ** int(int(data[10:12], 16) & int('0F', 16))
             current = ((int(data[6:8], 16) * 256 + int(data[4:6], 16)) / 65536 * 4.096 - 2.048) * current_range / 10**(3)
             if data[10:12] == '01':
                 current = current + 4.096 * current
             if data[10:12] == 'FF':
                 current = current - 4.096 * current
-            if ((data[10:12] and '20') == '20'):
+            if (int(data[10:12], 16) & int('20', 16) == int('20', 16)):
                 current_overload = True
                 print("current overload")
-            if ((data[10:12] and '40') == '40'):
+            if (int(data[10:12], 16) & int('40', 16) == int('40', 16)):
                 current_underload = True
                 print("current underload")
             potential_array.append(potential)
