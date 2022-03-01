@@ -55,6 +55,7 @@ def com_windows():
     layout = [
 			     [sg.Text('Pump Control', size=(40, 1),
 					justification='center', font='Helvetica 20')],
+
                  [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12')],
                  [sg.Combo(usbs)],
        			 [sg.Combo(portName)],
@@ -209,6 +210,7 @@ def main():
         plt.figure(1)
         ax.grid() # draw the grid
         ax.plot(IV[0],IV[1]) #plot new pstat readings
+
         df = pd.DataFrame({'Potential':IV[0], 'Current':IV[1]})
         df.to_csv(data_folder + '/csv/' + str(measurement) + '.csv')
         ax.set_xlabel('Potential (V)')
@@ -230,9 +232,11 @@ def main():
             pstat.close()
             break
 
+
     while True: #Keeps window open until closed
         event, values = window.read(timeout=10)
         if event == sg.WIN_CLOSED or event == 'Exit':
             break
+
 if __name__ == '__main__':
 	main()
