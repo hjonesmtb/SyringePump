@@ -224,7 +224,7 @@ class Emstat:
         #tInt
         tInt = self.tint_calc(freq)
         #format ascii command
-        L_command = "technique={}\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil={}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstep={}\nEpulse={}\nnPoints={}\ntInt={}\ntPulse={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format(technique, Econd, tCond, Edep, tDep, tEquil, cr_min, cr_max, cr, Ebegin, Estep, Epulse, nPoints, tInt, tPulse, d1, d16, options, nadmean)
+        L_command = "technique={}\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil={}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstep={}\nEpulse={}\nnPoints={}\ntInt={}\ntPulse={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format(technique, Econd, tCond, Edep, tDep, t_equil, cr_min, cr_max, cr, Ebegin, Estep, Epulse, nPoints, tInt, tPulse, d1, d16, options, nadmean)
         print(L_command)
         return L_command
 
