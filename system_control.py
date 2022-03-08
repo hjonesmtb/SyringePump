@@ -1,12 +1,19 @@
 """
+Main controler for the Fentanyl Quantification System.
+To use the application the following libraries will need to be installed:
+    pandas
+    matplotlib
+    PySimpleGUI
+    serial.tools
+
+
+References:
+
 Serial library
 https://pyserial.readthedocs.io/en/latest/tools.html
 
 """
-
-
 import time
-
 import PySimpleGUI as sg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, FigureCanvasAgg
 from matplotlib.figure import Figure
@@ -15,10 +22,106 @@ import numpy as np
 import os
 from datetime import datetime
 import pandas as pd
-
 from serial.tools import list_ports
+
 from syringe_pump.pump_22 import Pump
 from emstat.emstat_communication import Emstat
+
+
+SYMBOL_UP =    '▲'
+SYMBOL_DOWN =  '▼'
+
+"""
+    Helper function that creates a Column that can be later made hidden, thus appearing "collapsed"
+    :param layout: The layout for the section
+    :param key: Key used to make this seciton visible / invisible
+    :return: A pinned column that can be placed directly into your layout
+    :rtype: sg.pin
+    """
+
+#boiler plate code for USB port selection page.
+def com_window():
+
+    #creates a list of the names of all current usb devices.
+    usbs = list_ports.comports()
+    port_name = []
+    for usb in usbs:
+        port_name.append(usb.name)
+    
+    layout = usb_gui_format(usbs, port_name)
+
+    # create the form and show it without the plot
+    window = sg.Window('Select USB Ports', layout, finalize=True, resizable=True)
+    return window
+
+def usb_gui_format(usbs, port_name):
+    layout =[
+            [sg.Text('Pump Control', size=(40, 1), justification='center', font='Helvetica 20')],
+            [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12')],
+            [sg.Combo(usbs, key=("-usbs-"))],
+            [sg.Combo(port_name, key=('-PumpPort-'))],
+            [sg.Text('Syringe Pump Baudrate', size=(20, 1), font='Helvetica 12'), sg.InputText('1200', key='-baud-')],
+            [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12')],
+            [sg.Combo(port_name, key=("-PStatPort-"))],
+            [sg.Canvas(key='controls_cv')],
+            [sg.Canvas(size=(650, 30), key='-CANVAS-')],
+            [sg.Button('Submit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')]
+            ]
+    return layout
+
+#boiler plate code for entering parameters
+def control_windows():
+    SWV_parameters = voltammetry_gui_format()
+    layout = Test_GUI_Format(SWV_parameters)
+    window = sg.Window('Start Screen',layout, finalize=True, resizable=True)
+    ax, fig_agg = Plot_GUI_Format(window)
+   
+    return window, ax, fig_agg
+
+def voltammetry_gui_format():
+    swv_parameters = [
+            [sg.Text('SWV Settings', size=(40, 1), justification='center', font='Helvetica 20')],
+            [sg.Text('E condition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
+            [sg.Text('t condition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
+            [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.8')],
+            [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
+            [sg.Text('E begin [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('-0.4')],
+            [sg.Text('E stop [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.4')],
+            [sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.005')],
+            [sg.Text('Amplitude [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.01')],
+            [sg.Text('Frequency [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText('7')]
+            ]
+    return swv_parameters
+
+def Test_GUI_Format(SWV_parameters):
+    dt = datetime.now().replace(second=0, microsecond=0)
+    layout =[
+            [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText('Test_'+dt)],
+            [sg.Text('Pump Settings', size=(40, 1),justification='center', font='Helvetica 20')],
+            [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText('1000')],
+            [sg.Text('Infusion volume [mL]', size=(15, 1), font='Helvetica 12'), sg.InputText('1')],
+            [sg.Text('# Measurements', size=(15, 1), font='Helvetica 12'), sg.InputText('1')],
+            [sg.T(SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-', text_color='white'), sg.T('SWV parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
+            [collapse(SWV_parameters, '-SEC1-')],
+            [sg.Button('Start', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')],
+            [sg.Canvas(key='controls_cv')],
+            [sg.Canvas(size=(650, 30), key='-CANVAS-')],
+            [sg.Button('Exit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')]
+            ]
+    return layout
+
+def Plot_GUI_Format(window):
+    canvas_elem = window['-CANVAS-']
+    canvas = canvas_elem.TKCanvas
+
+    #draw the initial plot in the window
+    fig = plt.figure(1)
+    ax = fig.add_subplot(111)
+    ax.set_xlabel('Potential (V)')
+    ax.set_ylabel('Current (uA)')
+    fig_agg = draw_figure(canvas, fig)
+
+    return ax, fig_agg
 
 def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
@@ -26,120 +129,19 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
     return figure_canvas_agg
 
-
-SYMBOL_UP =    '▲'
-SYMBOL_DOWN =  '▼'
-
-
+#allows section of GUI to be collapsed
 def collapse(layout, key):
-    """
-    Helper function that creates a Column that can be later made hidden, thus appearing "collapsed"
-    :param layout: The layout for the section
-    :param key: Key used to make this seciton visible / invisible
-    :return: A pinned column that can be placed directly into your layout
-    :rtype: sg.pin
-    """
     return sg.pin(sg.Column(layout, key=key))
-
-#boiler plate code for start page. Choose COM ports
-#TODO: define new variable emstat_com
-def com_windows():
-
-    #creates a list of the names of all current usb devices.
-    usbs = list_ports.comports()
-    
-    portName = []
-    for usb in usbs:
-        portName.append(usb.name)
-    
-    layout = [
-			     [sg.Text('Pump Control', size=(40, 1),
-					justification='center', font='Helvetica 20')],
-
-                 [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12')],
-                 [sg.Combo(usbs)],
-       			 [sg.Combo(portName)],
-       			 [sg.Text('Syringe Pump Baudrate', size=(15, 1), font='Helvetica 12'), sg.InputText('1200')],
-                 [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12')],
-       			 [sg.Combo(portName)],
-
-		         [sg.Canvas(key='controls_cv')],
-                 [sg.Canvas(size=(650, 30), key='-CANVAS-')],
-
-		        [sg.Button('Submit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')]
-		        ]
-
-    # create the form and show it without the plot
-    window = sg.Window('Start Screen',
-                layout, finalize=True, resizable=True)
-
-    canvas_elem = window['-CANVAS-']
-    canvas = canvas_elem.TKCanvas
-
-    return window
-
-#boiler plate code for entering parameters
-def control_windows():
-    SWV_parameters = [[sg.Text('SWV Settings', size=(40, 1),
-            justification='center', font='Helvetica 20')],
-
-            [sg.Text('E condition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
-            [sg.Text('t condition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
-            [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.8')],
-            # [sg.Text('t deposition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('5')], #Deposition time depends on flowrate and volume/flush
-
-            [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
-            [sg.Text('E begin [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('-0.4')],
-            [sg.Text('E stop [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.4')],
-            [sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.005')],
-            [sg.Text('Amplitude [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.01')],
-            [sg.Text('Frequency [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText('7')]]
-
-    layout = [
-
-            [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText('')],
-            [sg.Text('Pump Settings', size=(40, 1),justification='center', font='Helvetica 20')],
-            [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText('1000')],
-            [sg.Text('Infusion volume [mL]', size=(15, 1), font='Helvetica 12'), sg.InputText('1')],
-            [sg.Text('# Measurements', size=(15, 1), font='Helvetica 12'), sg.InputText('1')],
-
-            [sg.T(SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-', text_color='white'), sg.T('SWV parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
-            [collapse(SWV_parameters, '-SEC1-')],
-
-            [sg.Button('Start', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')],
-
-            [sg.Canvas(key='controls_cv')],
-            [sg.Canvas(size=(650, 30), key='-CANVAS-')],
-
-            [sg.Button('Exit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')]
-            ]
-
-    window = sg.Window('Start Screen',
-                layout, finalize=True, resizable=True)
-
-    canvas_elem = window['-CANVAS-']
-    canvas = canvas_elem.TKCanvas
-
-       # draw the initial plot in the window
-    fig = plt.figure(1)
-    ax = fig.add_subplot(111)
-    ax.set_xlabel('Potential (V)')
-    ax.set_ylabel('Current (uA)')
-
-    fig_agg = draw_figure(canvas, fig)
-
-    return window, ax, fig_agg
-
 def main():
     opened1 = True
-    COM_select = com_windows()
+    COM_select = com_window()
     while True:
-        event, comReadout = COM_select.read(timeout=10)
+        event, values = COM_select.read(timeout=10)
 
         if event in ('Submit', None):
-            pump_com = comReadout[1]
-            pump_baud = int(comReadout[2])
-            pstat_com = comReadout[3]
+            pump_com = values['-PumpPort-']
+            pump_baud = int(values['-baud-'])
+            pstat_com = values['-PStatPort-']
             break
 
     COM_select.close()
