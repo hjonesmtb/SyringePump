@@ -40,8 +40,8 @@ class Pump():
 		self.ser.flushOutput()
 	
 	@classmethod
-	def from_parameters(cls, PARAMS):
-		return cls(PARAMS["pump_com"], PARAMS["pump_baud"])
+	def from_parameters(cls, system_data):
+		return cls(system_data.pump_com, system_data.pump_baud)
 
 	def close(self):
 		self.write("KEY")

@@ -13,6 +13,7 @@ Serial library
 https://pyserial.readthedocs.io/en/latest/tools.html
 
 """
+import sys
 import time
 import PySimpleGUI as sg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, FigureCanvasAgg
@@ -23,56 +24,59 @@ import os
 from datetime import datetime
 import pandas as pd
 from serial.tools import list_ports
+from threading import Thread
 
 from syringe_pump.pump_22 import Pump
 from emstat.emstat_communication import Emstat
+from system_data import System_Data
 
 
 SYMBOL_UP =    '▲'
 SYMBOL_DOWN =  '▼'
-SYRINGE_DIAM = 10 #mm
-FLOWRATE_CONVERSION = 1 / 1000 / 60 #1mL/1000uL*1min/60seconds
+system_data = System_Data()
+# SYRINGE_DIAM = 10 #mm
+# FLOWRATE_CONVERSION = 1 / 1000 / 60 #1mL/1000uL*1min/60seconds
 
-#default values
-TEST_NAME = "Test_" + datetime.now().strftime("%y-%m-%d_%H:%M")
-PUMP_BAUD = 1200
-PUMP_COM = "COM3"
-PSTAT_COM = "COM4"
-E_CONDITION = 0 #V
-T_CONDITION = 0 #s
-E_DEPOSITION = 0.8 #V
-T_EQUILIBRATION = 0 #s
-E_BEGIN = -0.4 #V
-E_STOP = 0.4 #V
-E_STEP = 0.005 #V
-AMPLITUDE = 0.01 #V
-FREQUENCY = 7 #Hz
-FLOW_RATE = 1000 #uL/min
-INFUSION_VOLUME = 1 #mL
-N_MEASUREMENTS = 1
-T_DEPOSITION = INFUSION_VOLUME / N_MEASUREMENTS / ( FLOW_RATE * FLOWRATE_CONVERSION )
-STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
+# #default values
+# TEST_NAME = "Test_" + datetime.now().strftime("%y-%m-%d_%H:%M")
+# PUMP_BAUD = 1200
+# PUMP_COM = "COM3"
+# PSTAT_COM = "COM4"
+# E_CONDITION = 0 #V
+# T_CONDITION = 0 #s
+# E_DEPOSITION = 0.8 #V
+# T_EQUILIBRATION = 0 #s
+# E_BEGIN = -0.4 #V
+# E_STOP = 0.4 #V
+# E_STEP = 0.005 #V
+# AMPLITUDE = 0.01 #V
+# FREQUENCY = 7 #Hz
+# FLOW_RATE = 1000 #uL/min
+# INFUSION_VOLUME = 1 #mL
+# N_MEASUREMENTS = 1
+# T_DEPOSITION = INFUSION_VOLUME / N_MEASUREMENTS / ( FLOW_RATE * FLOWRATE_CONVERSION )
+# STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
 
-PARAMS = {
-    "pump_com" : PUMP_COM,
-    "pump_baud" : PUMP_BAUD,
-    "pstat_com" : PSTAT_COM,
-    "test_name" : TEST_NAME,
-    "flow_rate" : FLOW_RATE,
-    "volume" : INFUSION_VOLUME,
-    "e_cond" : E_CONDITION,
-    "e_dep": E_DEPOSITION,
-    "e_begin": E_BEGIN,
-    "e_end" : E_STOP,
-    "e_step" : E_STEP,
-    "t_cond" : T_CONDITION,
-    "t_dep" : T_DEPOSITION,
-    "t_equil": T_EQUILIBRATION,
-    "amplitude" : AMPLITUDE,
-    "frequency" : FREQUENCY,
-    "n_measurements" : N_MEASUREMENTS,
-    "step_volume": STEP_VOLUME
-}
+# PARAMS = {
+#     "pump_com" : PUMP_COM,
+#     "pump_baud" : PUMP_BAUD,
+#     "pstat_com" : PSTAT_COM,
+#     "test_name" : TEST_NAME,
+#     "flow_rate" : FLOW_RATE,
+#     "volume" : INFUSION_VOLUME,
+#     "e_cond" : E_CONDITION,
+#     "e_dep": E_DEPOSITION,
+#     "e_begin": E_BEGIN,
+#     "e_end" : E_STOP,
+#     "e_step" : E_STEP,
+#     "t_cond" : T_CONDITION,
+#     "t_dep" : T_DEPOSITION,
+#     "t_equil": T_EQUILIBRATION,
+#     "amplitude" : AMPLITUDE,
+#     "frequency" : FREQUENCY,
+#     "n_measurements" : N_MEASUREMENTS,
+#     "step_volume": STEP_VOLUME
+# }
 """
     Helper function that creates a Column that can be later made hidden, thus appearing "collapsed"
     :param layout: The layout for the section
@@ -99,15 +103,13 @@ def com_window():
 def usb_gui_format(usbs, port_name):
     layout =[
             [sg.Text('Pump Control', size=(40, 1), justification='center', font='Helvetica 20')],
-            [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12')],
-            [sg.Combo(usbs, key=("-usbs-"))],
-            [sg.Combo(port_name, key=('-PumpPort-'))],
-            [sg.Text('Syringe Pump Baudrate', size=(20, 1), font='Helvetica 12'), sg.InputText(PUMP_BAUD, key='-baud-')],
-            [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12')],
-            [sg.Combo(port_name, key=("-PStatPort-"))],
+            [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, key=('-PumpPort-'))],
+            [sg.Text('Syringe Pump Baudrate', size=(20, 1), font='Helvetica 12'), sg.InputText(system_data.pump_baud, key='-baud-')],
+            [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, key=("-PStatPort-"))],
+            [sg.Text('List of Detected Ports', size=(20, 1), font='Helvetica 12'), sg.Combo(usbs, key=("-usbs-"))],
             [sg.Canvas(key='controls_cv')],
             [sg.Canvas(size=(650, 30), key='-CANVAS-')],
-            [sg.Button('Submit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')]
+            [sg.Button('Submit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')],
             ]
     return layout
 
@@ -123,25 +125,25 @@ def control_windows():
 def voltammetry_gui_format():
     swv_parameters = [
             [sg.Text('SWV Settings', size=(40, 1), justification='center', font='Helvetica 20')],
-            [sg.Text('E condition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(E_CONDITION)],
-            [sg.Text('t condition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(T_CONDITION)],
-            [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(E_DEPOSITION)],
-            [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(T_EQUILIBRATION)],
-            [sg.Text('E begin [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(E_BEGIN)],
-            [sg.Text('E stop [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(E_STOP)],
-            [sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(E_STEP)],
-            [sg.Text('Amplitude [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(AMPLITUDE)],
-            [sg.Text('Frequency [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText(FREQUENCY)]
+            [sg.Text('E condition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_cond)],
+            [sg.Text('t condition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_cond)],
+            [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_dep)],
+            [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_equil)],
+            [sg.Text('E begin [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_begin)],
+            [sg.Text('E stop [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_end)],
+            [sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_end)],
+            [sg.Text('Amplitude [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.amplitude)],
+            [sg.Text('Frequency [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.frequency)]
             ]
     return swv_parameters
 
 def Test_GUI_Format(SWV_parameters):
     layout =[
-            [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(TEST_NAME)],
+            [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name)],
             [sg.Text('Pump Settings', size=(40, 1),justification='center', font='Helvetica 20')],
-            [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(FLOW_RATE)],
-            [sg.Text('Infusion volume [mL]', size=(15, 1), font='Helvetica 12'), sg.InputText(INFUSION_VOLUME)],
-            [sg.Text('# Measurements', size=(15, 1), font='Helvetica 12'), sg.InputText(N_MEASUREMENTS)],
+            [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate)],
+            [sg.Text('Infusion volume [mL]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.volume)],
+            [sg.Text('# Measurements', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.n_measurements)],
             [sg.T(SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-', text_color='white'), sg.T('SWV parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
             [collapse(SWV_parameters, '-SEC1-')],
             [sg.Button('Start', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')],
@@ -182,9 +184,9 @@ def com_window_process():
         event, values = COM_select.read(timeout=10)
 
         if event in ('Submit', None):
-            PARAMS["pump_com"] = values['-PumpPort-']
-            PARAMS["pump_baud"] = int(values['-baud-'])
-            PARAMS["pstat_com"] = values['-PStatPort-']
+            system_data.pump_com = values['-PumpPort-']
+            system_data.pump_baud = int(values['-baud-'])
+            system_data.pstat_com = values['-PStatPort-']
             break
 
     COM_select.close()
@@ -207,17 +209,17 @@ def parameter_window_process():
 
         if event in ('Start', None):
             print(event, values)
-            PARAMS["test_name"] = values[0]
-            PARAMS["flow_rate"], PARAMS["volume"], PARAMS["n_measurements"] = int(values[1]), int(values[2]), int(values[3])
-            PARAMS["e_cond"], PARAMS["t_cond"] = float(values[4]), float(values[5])
-            PARAMS["e_dep"] = float(values[6])
-            PARAMS["t_equil"] = float(values[7])
-            PARAMS["e_begin"], PARAMS["e_end"], PARAMS["e_step"] = float(values[8]), float(values[9]), float(values[10])
-            PARAMS["amplitude"], PARAMS["frequency"] = float(values[11]), float(values[12])
+            system_data.test_name = values[0]
+            system_data.flow_rate, system_data.volume, system_data.n_measurements = int(values[1]), int(values[2]), int(values[3])
+            system_data.e_cond, system_data.t_cond = float(values[4]), float(values[5])
+            system_data.e_dep = float(values[6])
+            system_data.t_equil = float(values[7])
+            system_data.e_begin, system_data.e_end, system_data.e_step = float(values[8]), float(values[9]), float(values[10])
+            system_data.amplitude, system_data.frequency = float(values[11]), float(values[12])
             break
 
     path = os.getcwd() + '\data'
-    new_folder = PARAMS["test_name"]
+    new_folder = system_data.test_name
     data_folder = os.path.join(path, new_folder)
     if not os.path.exists(data_folder):
         os.makedirs(data_folder)
@@ -227,22 +229,22 @@ def parameter_window_process():
 
 def connect_to_pump():
     # connect to pump
-    pump = Pump.from_parameters(PARAMS)
-    #pump = Pump(PARAMS["pump_com"], PARAMS["pump_baud"])
+    pump = Pump.from_parameters(system_data)
+    #pump = Pump(system_data.["pump_com"], system_data.["pump_baud"])
 
-    pump.set_diameter(SYRINGE_DIAM) # Fixed syringe diameter
-    pump.set_rate(PARAMS["flow_rate"],'uL/min')
-    pump.set_volume(PARAMS["volume"])
+    pump.set_diameter(system_data.syringe_diam) # Fixed syringe diameter
+    pump.set_rate(system_data.flow_rate,'uL/min')
+    pump.set_volume(system_data.volume)
     pump.reset_acc() # reset accumulated volume to zero
     return pump
 def connect_to_pstat():
    
    #need to compute deposition time from inputted values.
-    PARAMS["step_volume"] = PARAMS["volume"] / PARAMS["n_measurements"]
-    PARAMS["t_dep"] = PARAMS["step_volume"] / (PARAMS["flow_rate"]*FLOWRATE_CONVERSION) #s/measurement
+    system_data.step_volume = system_data.volume / system_data.n_measurements
+    system_data.t_dep = system_data.step_volume / (system_data.flow_rate*system_data.flowrate_conversion) #s/measurement
     #connect to emstat
-    return Emstat.from_parameters(PARAMS)
-    #return Emstat(PARAMS["pstat_com"], PARAMS["e_cond"], PARAMS["t_cond"], PARAMS["e_dep"], PARAMS["t_dep"], PARAMS["t_equil"], PARAMS["e_begin"], PARAMS["e_end"], PARAMS["e_step"], PARAMS["amplitude"], PARAMS["frequency"])
+    return Emstat.from_parameters(system_data)
+    #return Emstat(system_data.["pstat_com"], system_data.["e_cond"], system_data.["t_cond"], system_data.["e_dep"], system_data.["t_dep"], system_data.["t_equil"], system_data.["e_begin"], system_data.["e_end"], system_data.["e_step"], system_data.["amplitude"], system_data.["frequency"])
 
 def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
     measurement = 0
@@ -251,7 +253,7 @@ def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
     while True:
         # start flow, deposit norfentynal
         pump.infuse()
-        pstat.deposition(PARAMS["t_dep"]) # this takes ~10-20 secs, during which GUI is bricked. TODO fix error
+        pstat.deposition(system_data.t_dep) # this takes ~10-20 secs, during which GUI is bricked. TODO fix error
         #
         # #stop flow, run SWV sweep
         pump.stop()
@@ -276,7 +278,7 @@ def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
         window.read(10)
 
         # Stop program when we've completed all measurements
-        if measurement >= PARAMS["n_measurements"]:
+        if measurement >= system_data.n_measurements:
             pump.stop()
             pump.close()
             pstat.close()
@@ -294,7 +296,6 @@ def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
 
 """
 def main():
-
     #Step 1: USB ports are selected by user input.
     com_window_process()
     #Step 2: System Parameters are set by user input.

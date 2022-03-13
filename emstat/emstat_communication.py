@@ -38,8 +38,8 @@ class Emstat:
         self.deposition_potential = e_dep
     
     @classmethod
-    def from_parameters(cls, PARAMS):
-        return cls(PARAMS["pstat_com"], PARAMS["e_cond"], PARAMS["t_cond"], PARAMS["e_dep"], PARAMS["t_dep"], PARAMS["t_equil"], PARAMS["e_begin"], PARAMS["e_end"], PARAMS["e_step"], PARAMS["amplitude"], PARAMS["frequency"])
+    def from_parameters(cls, system_data):
+        return cls(system_data.pstat_com, system_data.e_cond, system_data.t_cond, system_data.e_dep, system_data.t_dep, system_data.t_equil, system_data.e_begin, system_data.e_end, system_data.e_step, system_data.amplitude, system_data.frequency)
 
     def sendData(self, string):
         self.ser.write(string.encode('ascii'))
