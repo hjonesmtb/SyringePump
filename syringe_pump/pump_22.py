@@ -38,6 +38,10 @@ class Pump():
 			print("COM port is not available")
 		self.ser.flushInput()
 		self.ser.flushOutput()
+	
+	@classmethod
+	def from_parameters(cls, PARAMS):
+		return cls(PARAMS["pump_com"], PARAMS["pump_baud"])
 
 	def close(self):
 		self.write("KEY")

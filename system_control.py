@@ -227,7 +227,8 @@ def parameter_window_process():
 
 def connect_to_pump():
     # connect to pump
-    pump = Pump(PARAMS["pump_com"], PARAMS["pump_baud"])
+    pump = Pump.from_parameters(PARAMS)
+    #pump = Pump(PARAMS["pump_com"], PARAMS["pump_baud"])
 
     pump.set_diameter(SYRINGE_DIAM) # Fixed syringe diameter
     pump.set_rate(PARAMS["flow_rate"],'uL/min')
@@ -236,10 +237,12 @@ def connect_to_pump():
     return pump
 def connect_to_pstat():
    
+   #need to compute deposition time from inputted values.
     PARAMS["step_volume"] = PARAMS["volume"] / PARAMS["n_measurements"]
     PARAMS["t_dep"] = PARAMS["step_volume"] / (PARAMS["flow_rate"]*FLOWRATE_CONVERSION) #s/measurement
     #connect to emstat
-    return Emstat(PARAMS["pstat_com"], PARAMS["e_cond"], PARAMS["t_cond"], PARAMS["e_dep"], PARAMS["t_dep"], PARAMS["t_equil"], PARAMS["e_begin"], PARAMS["e_end"], PARAMS["e_step"], PARAMS["amplitude"], PARAMS["frequency"])
+    return Emstat.from_parameters(PARAMS)
+    #return Emstat(PARAMS["pstat_com"], PARAMS["e_cond"], PARAMS["t_cond"], PARAMS["e_dep"], PARAMS["t_dep"], PARAMS["t_equil"], PARAMS["e_begin"], PARAMS["e_end"], PARAMS["e_step"], PARAMS["amplitude"], PARAMS["frequency"])
 
 def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
     measurement = 0

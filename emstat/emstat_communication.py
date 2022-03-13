@@ -36,6 +36,10 @@ class Emstat:
                 print("COM port is not available")
         self.swv_params = self.format_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequency, e_cond, t_cond)
         self.deposition_potential = e_dep
+    
+    @classmethod
+    def from_parameters(cls, PARAMS):
+        return cls(PARAMS["pstat_com"], PARAMS["e_cond"], PARAMS["t_cond"], PARAMS["e_dep"], PARAMS["t_dep"], PARAMS["t_equil"], PARAMS["e_begin"], PARAMS["e_end"], PARAMS["e_step"], PARAMS["amplitude"], PARAMS["frequency"])
 
     def sendData(self, string):
         self.ser.write(string.encode('ascii'))
