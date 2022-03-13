@@ -32,8 +32,8 @@ class Pump():
 		#self.port = serial.Serial(port = 'COM{}', stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
 		try:
 			self.ser = serial.Serial(port = ser, stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
-			if self.ser.inWaiting():
-				print("port opened successfully")
+			if self.ser.isOpen():
+				print("pump port opened successfully")
 		except:
 			print("COM port is not available")
 		self.ser.flushInput()
