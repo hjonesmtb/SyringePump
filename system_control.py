@@ -89,7 +89,7 @@ def com_window():
     port_name = []
     for usb in usbs:
         port_name.append(usb.name)
-    
+
     layout = usb_gui_format(usbs, port_name)
 
     # create the form and show it without the plot
@@ -117,7 +117,7 @@ def control_windows():
     layout = Test_GUI_Format(SWV_parameters)
     window = sg.Window('Start Screen', layout, finalize=True, resizable=True)
     ax, fig_agg = Plot_GUI_Format(window)
-   
+
     return window, ax, fig_agg
 
 def voltammetry_gui_format():
@@ -285,8 +285,8 @@ def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
 """Main process for GUI windows. Process occurs in the following steps:
 
 1). The USB port selection window appears allowing the user to select the correct usb connections
-    for the potentiostat and the syringe pump. 
-2). The parameter setting window appears allowing for a test to be named 
+    for the potentiostat and the syringe pump.
+2). The parameter setting window appears allowing for a test to be named
     and measurement parameters to be selected.
 3). The syringe pump is connected via serial.
 4). The potentiostat is connected via serial.
@@ -307,7 +307,7 @@ def main():
     conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder)
 
    #Keeps measurement window open until closed
-    while True: 
+    while True:
         event, values = window.read(timeout=10)
         if event == sg.WIN_CLOSED or event == 'Exit':
             break
