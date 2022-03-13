@@ -47,11 +47,9 @@ def com_windows():
 
     #creates a list of the names of all current usb devices.
     usbs = list_ports.comports()
-    
     portName = []
     for usb in usbs:
         portName.append(usb.name)
-    
     layout = [
 			     [sg.Text('Pump Control', size=(40, 1),
 					justification='center', font='Helvetica 20')],
