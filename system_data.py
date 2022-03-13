@@ -1,10 +1,10 @@
-import datetime
+from datetime import datetime
 
 SYRINGE_DIAM = 10  # mm
 FLOWRATE_CONVERSION = 1 / 1000 / 60  # 1mL/1000uL*1min/60seconds
 
 # default values
-TEST_NAME = "Test_" + datetime.now().strftime("%y-%m-%d_%H:%M")
+TEST_NAME = "Test_" + datetime.now().strftime("%y-%m-%d_%H;%M")
 PUMP_BAUD = 1200
 PUMP_COM = "COM3"
 PSTAT_COM = "COM4"
@@ -53,3 +53,10 @@ class System_Data:
         self.step_volume = STEP_VOLUME
         self.syringe_diam = SYRINGE_DIAM
         self.flowrate_conversion = FLOWRATE_CONVERSION
+        self.measurements = 0
+
+    def write_IV(self, pot, cur, over, under):
+        self.current = cur
+        self.potential = pot
+        self.overload = over
+        self.underload = under

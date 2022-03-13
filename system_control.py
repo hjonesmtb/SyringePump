@@ -24,7 +24,7 @@ import os
 from datetime import datetime
 import pandas as pd
 from serial.tools import list_ports
-from threading import Thread
+import threading, queue
 
 from syringe_pump.pump_22 import Pump
 from emstat.emstat_communication import Emstat
@@ -33,50 +33,10 @@ from system_data import System_Data
 
 SYMBOL_UP =    '▲'
 SYMBOL_DOWN =  '▼'
+
+#System_Data class is initialized with default values.
+#This class will hold the data read from the potentiostat for generating plots and saving to a .csv
 system_data = System_Data()
-# SYRINGE_DIAM = 10 #mm
-# FLOWRATE_CONVERSION = 1 / 1000 / 60 #1mL/1000uL*1min/60seconds
-
-# #default values
-# TEST_NAME = "Test_" + datetime.now().strftime("%y-%m-%d_%H:%M")
-# PUMP_BAUD = 1200
-# PUMP_COM = "COM3"
-# PSTAT_COM = "COM4"
-# E_CONDITION = 0 #V
-# T_CONDITION = 0 #s
-# E_DEPOSITION = 0.8 #V
-# T_EQUILIBRATION = 0 #s
-# E_BEGIN = -0.4 #V
-# E_STOP = 0.4 #V
-# E_STEP = 0.005 #V
-# AMPLITUDE = 0.01 #V
-# FREQUENCY = 7 #Hz
-# FLOW_RATE = 1000 #uL/min
-# INFUSION_VOLUME = 1 #mL
-# N_MEASUREMENTS = 1
-# T_DEPOSITION = INFUSION_VOLUME / N_MEASUREMENTS / ( FLOW_RATE * FLOWRATE_CONVERSION )
-# STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
-
-# PARAMS = {
-#     "pump_com" : PUMP_COM,
-#     "pump_baud" : PUMP_BAUD,
-#     "pstat_com" : PSTAT_COM,
-#     "test_name" : TEST_NAME,
-#     "flow_rate" : FLOW_RATE,
-#     "volume" : INFUSION_VOLUME,
-#     "e_cond" : E_CONDITION,
-#     "e_dep": E_DEPOSITION,
-#     "e_begin": E_BEGIN,
-#     "e_end" : E_STOP,
-#     "e_step" : E_STEP,
-#     "t_cond" : T_CONDITION,
-#     "t_dep" : T_DEPOSITION,
-#     "t_equil": T_EQUILIBRATION,
-#     "amplitude" : AMPLITUDE,
-#     "frequency" : FREQUENCY,
-#     "n_measurements" : N_MEASUREMENTS,
-#     "step_volume": STEP_VOLUME
-# }
 """
     Helper function that creates a Column that can be later made hidden, thus appearing "collapsed"
     :param layout: The layout for the section
@@ -247,42 +207,51 @@ def connect_to_pstat():
     #return Emstat(system_data.["pstat_com"], system_data.["e_cond"], system_data.["t_cond"], system_data.["e_dep"], system_data.["t_dep"], system_data.["t_equil"], system_data.["e_begin"], system_data.["e_end"], system_data.["e_step"], system_data.["amplitude"], system_data.["frequency"])
 
 def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
-    measurement = 0
-    IV = [np.zeros(100), np.zeros(100)]
+    data_queue = queue.Queue()
+    thread = threading.Thread(target=take_measurement(data_queue, pump, pstat))
+    thread.start()
+    system_data.write_IV(np.zeros(100), np.zeros(100))
     # toggle flow on/off while measuring pstat
     while True:
         # start flow, deposit norfentynal
-        pump.infuse()
-        pstat.deposition(system_data.t_dep) # this takes ~10-20 secs, during which GUI is bricked. TODO fix error
-        #
-        # #stop flow, run SWV sweep
-        pump.stop()
-        IV = pstat.sweepSWV() # this takes ~10-20 secs, during which GUI is bricked
-        measurement += 1 #keeps track of measurement number
+        data_queue.put(system_data)
         plt.figure(1)
         ax.grid() # draw the grid
-        ax.plot(IV[0],IV[1]) #plot new pstat readings
+        ax.plot(system_data.potential,system_data.current) #plot new pstat readings
 
-        df = pd.DataFrame({'Potential':IV[0], 'Current':IV[1]})
-        df.to_csv(data_folder + '/csv/' + str(measurement) + '.csv')
+        df = pd.DataFrame({'Potential':system_data.potential, 'Current':system_data.current})
+        df.to_csv(data_folder + '/csv/' + str(system_data.measurements) + '.csv')
         ax.set_xlabel('Potential (V)')
         ax.set_ylabel('Current (uA)')
         fig_agg.draw()
         fig2 = plt.figure(2)
         plt.clf()
-        plt.plot(IV[0],IV[1])
+        plt.plot(system_data.potential,system_data.current)
         plt.xlabel('Potential (V)')
         plt.ylabel('Current (uA)')
-        plt.savefig(data_folder + '/plots/' + str(measurement) + '.png')
+        plt.savefig(data_folder + '/plots/' + str(system_data.measurements) + '.png')
 
         window.read(10)
 
         # Stop program when we've completed all measurements
-        if measurement >= system_data.n_measurements:
+        if system_data.measurements >= system_data.n_measurements:
+            thread.join()
             pump.stop()
             pump.close()
             pstat.close()
             break
+
+
+def take_measurement(data_queue, pump, pstat):
+    while True:
+        data = data_queue.get()
+        #do something
+        pump.infuse()
+        pstat.deposition(data.t_dep)
+        pump.stop()
+        data.write_IV(pstat.sweepSWV())
+        system_data.measurements += 1
+        data_queue.task_done()
 
 """Main process for GUI windows. Process occurs in the following steps:
 
