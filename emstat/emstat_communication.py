@@ -1,5 +1,3 @@
-#Questions: WHat is auxillary?
-
 import serial
 import numpy as np
 import binascii
@@ -48,32 +46,68 @@ class Emstat:
         self.ser.close()
 
     '''Runs deposition, returns an array with potential, current, noise, overload and underload data'''
+    # TODO: Change deposition readings
     def deposition(self, dep_time):
-        self.sendData("j") #enables idle packages
+        time.sleep(0.5)
+        self.sendData("J") #disables idle packages
+        time.sleep(1)
         T_packages = []
-        command = self.potential_to_cmd(self.deposition_potential, False)
-        command = 'D' + command
+        command = 'D' + self.potential_to_cmd(self.deposition_potential, False)
         self.sendData(command)
         starttime = time.time()
+        time.sleep(0.5)
+        self.sendData('c')
+        time.sleep(0.1)
+        self.sendData('a0000')
         char = self.readData(1).decode()
-        while char != "T":
-            if time.time() - starttime < dep_time:
+        while char != "a":
+            if time.time() - starttime > dep_time:
                 break
             char = self.readData(1).decode()
-            # print(char)
-
         while time.time() - starttime < dep_time:
             package = ''
             char = self.readData(1).decode()
-            while char != "T":
+            while char == "c" or char == ' ':
+                char = self.readData(1).decode()
+            while char != "a":
                 if char != '':
                     package = package + char
+                if len(package) == 4:
+                    break
                 char = self.readData(1).decode()
             print(package)
-            if len(package)  == 20:
-                print('printed')
+            if len(package)  == 4:
                 T_packages.append(package)
+            time.sleep(2)
+            self.sendData('c')
+            time.sleep(0.1)
+            self.sendData('a0000')
         potential_T, current_T, noise_T, overload_T, underload_T = self.process_T(T_packages)
+
+        #Idle package reading
+        # self.sendData("j") #enables idle packages
+        # T_packages = []
+        # command = 'D' + self.potential_to_cmd(self.deposition_potential, False)
+        # self.sendData(command)
+        # starttime = time.time()
+        # char = self.readData(1).decode()
+        # while char != "T":
+        #     if time.time() - starttime < dep_time:
+        #         break
+        #     char = self.readData(1).decode()
+        #
+        # while time.time() - starttime < dep_time:
+        #     package = ''
+        #     char = self.readData(1).decode()
+        #     while char != "T":
+        #         if char != '':
+        #             package = package + char
+        #         char = self.readData(1).decode()
+        #     print(package)
+        #     if len(package)  == 20:
+        #         print('printed')
+        #         T_packages.append(package)
+        # potential_T, current_T, noise_T, overload_T, underload_T = self.process_T(T_packages)
         return [potential_T, current_T, noise_T, overload_T, underload_T]
 
     #Runs swv sweep, returns array with potential, current, overload and underload arrays
@@ -83,6 +117,109 @@ class Emstat:
         potential_U, current_U, overload_U, underload_U = self.process_U(U_data)
         data_array = [potential_U, current_U, overload_U, underload_U]
         return data_array
+
+    #Runs constant voltage measurement at potential V for time_chrono s with n multiplexer channels
+    # def run_chronoamp(self, potential, time_chrono, n_channels):
+    #     print(self.potential_to_cmd(0))
+    #     zero = self.potential_to_cmd(0) #convert oV to bytes
+    #     e_constant = self.potential_to_cmd(potential) #convert set potential to bytes
+    #     tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
+    #     nPoints = time_chrono / tInt #define the number of points
+    #     tmeas = tInt / 2 #defined p. 32 of comm protocol
+    #     nadmean, d1, d16 = self.d1_d16_calc(tmeas)
+    #     if n_channels > 1:
+    #         options = 6 #if many electrodes, choose alternating multiplexer
+    #     else:
+    #         options = 4
+    #     L_command = ("technique=7\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
+    #     {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstby={}\nnPoints= \
+    #     {}\ntInt={}\nmux_delay=0\nnmux={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
+    #     (eCond = zero, tCond = 0, eDep = zero, tDep = 0, tEquil = 0, cr_min, cr_max, \
+    #     cr, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
+    #
+    #     self.sendData("L")
+    #     time.sleep(0.1)
+    #     self.sendData(L_command)
+    #
+    #     starttime = time.time()
+    #     time = []
+    #
+    #     if n_channels > 1:
+    #         P_data = []
+    #         while char != 'P': #Write Skip bytes until first P is read
+    #             char = self.readData(1).decode()
+    #         while char != '*': #end condition
+    #             package = ''
+    #             char = self.readData(1).decode()
+    #             while char != "P" and char != "*":
+    #                 if char != "":
+    #                     package = package + char
+    #                 char = self.readData(1).decode()
+    #             print(package)
+    #             if len(package) != 8*n_channels: #Check to make sure packages are the right length
+    #                 raise ValueError('P package not 8*n_channels characters')
+    #             P_data.append(package)
+    #             time.append(time.time()-starttime)
+    #     else:
+    #         U_data = []
+    #         while char != 'U': #Write Skip bytes until first P is read
+    #             char = self.readData(1).decode()
+    #         while char != '*': #end condition
+    #             package = ''
+    #             char = self.readData(1).decode()
+    #             while char != "U" and char != "*":
+    #                 if char != "":
+    #                     package = package + char
+    #                 char = self.readData(1).decode()
+    #             print(package)
+    #             if len(package) != 16: #Check to make sure packages are the right length
+    #                 raise ValueError('P package not 16 characters')
+    #             U_data.append(package)
+    #             time.append(time.time()-starttime)
+
+
+
+
+
+
+        # current_packages = []
+        #     time.sleep(0.5)
+        #     self.sendData("J") #disables idle packages
+        #     time.sleep(1)
+        #     T_packages = []
+        #     command = 'D' + self.potential_to_cmd(potential, False)
+        #     self.sendData(command)
+        #     starttime = time.time()
+        #     time.sleep(0.5)
+        #     self.sendData('c')
+        #     time.sleep(0.1)
+        #     self.sendData('a0000')
+        #     char = self.readData(1).decode()
+        #     while char != "a":
+        #         if time.time() - starttime > dep_time:
+        #             break
+        #         char = self.readData(1).decode()
+        #     while time.time() - starttime < dep_time:
+        #         package = ''
+        #         char = self.readData(1).decode()
+        #         while char == "c" or char == ' ':
+        #             char = self.readData(1).decode()
+        #         while char != "a":
+        #             if char != '':
+        #                 package = package + char
+        #             if len(package) == 4:
+        #                 break
+        #             char = self.readData(1).decode()
+        #         print(package)
+        #         if len(package)  == 4:
+        #             # print('printed')
+        #             current_packages.append(package)
+        #         time.sleep(2)
+        #         self.sendData('c')
+        #         time.sleep(0.1)
+        #         self.sendData('a0000')
+        #     potential_T, current_T, noise_T, overload_T, underload_T = self.process_T(T_packages)
+
 
     #Converts bytes to voltage, current, stage, I status and range, Aux input, for Tpackages
     def process_T(self, T_data):
@@ -146,7 +283,7 @@ class Emstat:
         self.sendData("J") # disables idle packages
         self.ser.flush() #clears the buffer
         self.ser.read()
-        self.sendData("L") #
+        self.sendData("L")
         time.sleep(0.1)
         self.sendData(self.swv_params)
         try:
