@@ -90,7 +90,7 @@ def voltammetry_gui_format():
             [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_equil)],
             [sg.Text('E begin [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_begin)],
             [sg.Text('E stop [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_end)],
-            [sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_end)],
+            [sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_step)],
             [sg.Text('Amplitude [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.amplitude)],
             [sg.Text('Frequency [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.frequency)]
             ]
@@ -100,8 +100,8 @@ def Test_GUI_Format(SWV_parameters):
     layout =[
             [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name)],
             [sg.Text('Pump Settings', size=(40, 1),justification='center', font='Helvetica 20')],
-            [sg.Text('Syringe Diammeter [mm]', size=(15,1), font='Helvetica 12'), sg.InputText(system_data.syringe_diam)],
             [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate)],
+            [sg.Text('Syringe Diameter [mm]', size=(15,1), font='Helvetica 12'), sg.InputText(system_data.syringe_diam)],
             [sg.Text('Infusion volume [mL]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.volume)],
             [sg.Text('# Measurements', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.n_measurements)],
             [sg.T(SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-', text_color='white'), sg.T('SWV parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
@@ -197,7 +197,7 @@ def connect_to_pump():
     pump.reset_acc() # reset accumulated volume to zero
     return pump
 def connect_to_pstat():
-   
+
    #need to compute deposition time from inputted values.
     system_data.step_volume = system_data.volume / system_data.n_measurements
     system_data.t_dep = system_data.step_volume / (system_data.flow_rate*system_data.flowrate_conversion) #s/measurement
@@ -211,28 +211,28 @@ def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
     #thread.start()
     # for measure in range(system_data.n_measurements):
     #     data_queue.put(system_data)
-    system_data.write_IV(np.zeros(100), np.zeros(100),np.zeros(100),np.zeros(100))
+    #system_data.write_swv(np.zeros(100), np.zeros(100),np.zeros(100),np.zeros(100))
     # toggle flow on/off while measuring pstat
     while True:
         # start flow, deposit norfentynal
-        
+
         pump.infuse()
-        pstat.deposition(system_data.t_dep)
+        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
         pump.stop()
-        system_data.write_IV(pstat.sweepSWV())
+        pstat.sweepSWV()
         system_data.measurements += 1
         plt.figure(1)
         ax.grid() # draw the grid
-        ax.plot(system_data.potential,system_data.current) #plot new pstat readings
+        ax.plot(system_data.potential_swv,system_data.current_swv) #plot new pstat readings
 
-        df = pd.DataFrame({'Potential':system_data.potential, 'Current':system_data.current})
+        df = pd.DataFrame({'Potential':system_data.potential_swv, 'Current':system_data.current_swv})
         df.to_csv(data_folder + '/csv/' + str(system_data.measurements) + '.csv')
         ax.set_xlabel('Potential (V)')
         ax.set_ylabel('Current (uA)')
         fig_agg.draw()
         fig2 = plt.figure(2)
         plt.clf()
-        plt.plot(system_data.potential,system_data.current)
+        plt.plot(system_data.potential_swv,system_data.current_swv)
         plt.xlabel('Potential (V)')
         plt.ylabel('Current (uA)')
         plt.savefig(data_folder + '/plots/' + str(system_data.measurements) + '.png')

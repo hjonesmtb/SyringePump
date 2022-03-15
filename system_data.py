@@ -1,6 +1,6 @@
 from datetime import datetime
 
-SYRINGE_DIAM = 10  # mm
+SYRINGE_DIAM = 20  # mm
 FLOWRATE_CONVERSION = 1 / 1000 / 60  # 1mL/1000uL*1min/60seconds
 
 # default values
@@ -17,7 +17,7 @@ E_STOP = 0.4  # V
 E_STEP = 0.005  # V
 AMPLITUDE = 0.01  # V
 FREQUENCY = 7  # Hz
-FLOW_RATE = 100  # uL/min
+FLOW_RATE = 1000  # uL/min
 INFUSION_VOLUME = 1  # mL
 N_MEASUREMENTS = 10
 T_DEPOSITION = INFUSION_VOLUME / N_MEASUREMENTS / (FLOW_RATE * FLOWRATE_CONVERSION)
@@ -27,10 +27,14 @@ STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
 class System_Data:
     def __init__(self):
         # measurment data
-        self.current = []
-        self.potential = []
-        self.overload = []
-        self.underload = []
+        self.current_swv = []
+        self.potential_swv = []
+        self.overload_swv = []
+        self.underload_swv = []
+        self.current_dep = []
+        self.potential_dep = []
+        self.overload_dep = []
+        self.underload_dep = []
         self.noise = []
         # system parameters
         self.pump_com = PUMP_COM
@@ -55,14 +59,14 @@ class System_Data:
         self.flowrate_conversion = FLOWRATE_CONVERSION
         self.measurements = 0
 
-    def write_sqv(self, pot, cur, over, under):
-        self.potential = pot
-        self.current = cur
-        self.overload = over
-        self.underload = under
+    def write_swv(self, pot, cur, over, under):
+        self.potential_swv = pot
+        self.current_swv = cur
+        self.overload_swv = over
+        self.underload_swv = under
 
-    def write_chrono(self, pot, cur, over, under):
-        self.potential = pot
-        self.current = cur
-        self.overload = over
-        self.underload = under
+    def write_dep(self, pot, cur, over, under):
+        self.potential_dep = pot
+        self.current_dep = cur
+        self.overload_dep = over
+        self.underload_dep = under

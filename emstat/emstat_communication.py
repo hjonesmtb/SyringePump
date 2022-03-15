@@ -10,19 +10,22 @@ from system_data import System_Data
 
 #User inputs
 technique = 2 #square wave voltammetry
-cr_min = 0 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 10uA, 6: 1mA, 7: 10mA, user input
+cr_min = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 10uA, 6: 1mA, 7: 10mA, user input
 cr_max = 7 # max current range, user input
 cr = 3 #Starting current range, user input
 measure_i_forward_reverse = True #user input
 cell_on_post_measure = False #user input
+
+
 
 #emstat 3 constants
 dac_factor = 1.599 #DAC factor specific to emstat3
 e_factor = 1.5 #Efactor specific to emstat3
 v_range = 3 #specific to emstat3
 
+
 class Emstat:
-    def __init__(self, pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequency):
+    def __init__(self, pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequency, system_data):
         try:
             #self.ser = serial.Serial('COM{}'.format(pstat_com), baudrate=230400, timeout = 1)
             self.ser = serial.Serial(str(pstat_com), baudrate=230400, timeout = 1)
@@ -37,10 +40,12 @@ class Emstat:
                 print("COM port is not available")
         self.swv_params = self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequency, e_cond, t_cond)
         self.deposition_potential = e_dep
+        self.system_data = system_data
 
     @classmethod
     def from_parameters(cls, system_data):
-        return cls(system_data.pstat_com, system_data.e_cond, system_data.t_cond, system_data.e_dep, system_data.t_dep, system_data.t_equil, system_data.e_begin, system_data.e_end, system_data.e_step, system_data.amplitude, system_data.frequency)
+
+        return cls(system_data.pstat_com, system_data.e_cond, system_data.t_cond, system_data.e_dep, system_data.t_dep, system_data.t_equil, system_data.e_begin, system_data.e_end, system_data.e_step, system_data.amplitude, system_data.frequency, system_data)
 
     def sendData(self, string):
         self.ser.write(string.encode('ascii'))
@@ -72,6 +77,7 @@ class Emstat:
             n_channels = 2
             sensing_channel = '0100'
             sensing_dep = eDep_e1
+        n_channels = 1
 
         if n_channels == 1:
             # self.emstat_ready('c')
@@ -92,7 +98,7 @@ class Emstat:
         zero = self.potential_to_cmd(0) #convert 0V to bytes
         e_constant = self.potential_to_cmd(potential) #convert set potential to bytes
         if n_channels == 1:
-            tInt = 0.1 #set tInt. Cannot be less than 0.25s if multiplexer present
+            tInt = 1 #set tInt. Cannot be less than 0.25s if multiplexer present
         if n_channels == 2:
             tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
         nPoints = dep_time / tInt #define the number of points
@@ -102,7 +108,7 @@ class Emstat:
         if n_channels > 1:
             options = 6 #if many electrodes, choose alternating multiplexer
         else:
-            options = 4 #Keep the cell on after measurement
+            options = 0 #Keep the cell on after measurement
         L_command = ("technique=7\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
         {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstby={}\nnPoints= \
         {}\ntInt={}\nmux_delay=0\nnmux={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
@@ -116,10 +122,11 @@ class Emstat:
         self.sendData(L_command)
 
         starttime = time.time()
-        time = []
+        time_log = []
 
         if n_channels > 1:
             P_data = []
+            char = self.readData(1).decode()
             while char != 'P': #Write Skip bytes until first P is read
                 char = self.readData(1).decode()
             while char != '*': #end condition
@@ -133,13 +140,14 @@ class Emstat:
                 if len(package) != 8*n_channels: #Check to make sure packages are the right length
                     raise ValueError('P package not 8*n_channels characters')
                 P_data.append(package)
-                time.append(time.time()-starttime)
+                time_log.append(time.time()-starttime)
         else:
             potential_dep = [] #array to store potential from deposition for this run
             current_dep = [] #array to store current from deposition for this run
             overload_dep = [] #array to store overload from deposition for this run
             underload_dep = [] #array to store underload from deposition for this run
             U_data = []
+            char = self.readData(1).decode()
             while char != 'U': #Write Skip bytes until first P is read
                 char = self.readData(1).decode()
             while char != '*': #end condition
@@ -149,16 +157,17 @@ class Emstat:
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
-                print(package)
+                #print(package)
                 if len(package) != 16: #Check to make sure packages are the right length
                     raise ValueError('U package not 16 characters')
-                potential, current, current_overload, current_underload = process_U(package)
+                potential, current, current_overload, current_underload = self.process_U(package)
                 potential_dep.append(potential)
                 current_dep.append(current)
                 overload_dep.append(current_overload)
                 underload_dep.append(current_underload)
-                time.append(time.time()-starttime)
-                System_Data.write_chrono(potential_dep, current_dep, overload_dep, underload_dep)
+                time_log.append(time.time()-starttime)
+                print(potential, current)
+                self.system_data.write_dep(potential_dep, current_dep, overload_dep, underload_dep)
         return
 
     '''Sends a key(c or L) to the emstat, waits until the key is returned to make sure
@@ -177,10 +186,7 @@ class Emstat:
 
     #Runs swv sweep, returns array with potential, current, overload and underload arrays
     def sweepSWV(self):
-        T_data, U_data = self.run_swv()
-        potential_T, current_T, noise_T, overload_T, underload_T = self.process_T(T_data)
-        potential_U, current_U, overload_U, underload_U = self.process_U(U_data)
-        return potential_U, current_U, overload_U, underload_U
+        self.run_swv()
 
     #Converts bytes to voltage, current, stage, I status and range, Aux input, for Tpackages
     def process_T(self, T_data):
@@ -286,15 +292,16 @@ class Emstat:
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
-                print(package)
+                #print(package)
                 if len(package) != 16:
                     raise ValueError('U package not 16 characters')
-                potential, current, current_overload, current_underload = process_U(package)
+                potential, current, current_overload, current_underload = self.process_U(package)
                 potential_swv.append(potential)
                 current_swv.append(current)
                 overload_swv.append(current_overload)
                 underload_swv.append(current_underload)
-                System_Data.write_chrono(potential_swv, current_swv, overload_swv, underload_swv)
+                print("swv", potential, current)
+                self.system_data.write_swv(potential_swv, current_swv, overload_swv, underload_swv)
             print("measurement complete")
         except Exception as e:
             print("Process terminated")
