@@ -180,7 +180,7 @@ class Emstat:
 
     #Converts bytes to voltage, current, stage, I status and range, Aux input, for Tpackages
     def process_T(self, T_data):
-        potential []
+        potential = []
         current_array = []
         noise_array = []
         overload_array = []
