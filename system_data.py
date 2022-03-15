@@ -4,7 +4,7 @@ SYRINGE_DIAM = 10  # mm
 FLOWRATE_CONVERSION = 1 / 1000 / 60  # 1mL/1000uL*1min/60seconds
 
 # default values
-TEST_NAME = "Test_" + datetime.now().strftime("%y-%m-%d_%H;%M")
+TEST_NAME = "Test_" + datetime.now().strftime("%y-%m-%d_%H%M")
 PUMP_BAUD = 1200
 PUMP_COM = "COM3"
 PSTAT_COM = "COM4"
@@ -17,9 +17,9 @@ E_STOP = 0.4  # V
 E_STEP = 0.005  # V
 AMPLITUDE = 0.01  # V
 FREQUENCY = 7  # Hz
-FLOW_RATE = 1000  # uL/min
+FLOW_RATE = 100  # uL/min
 INFUSION_VOLUME = 1  # mL
-N_MEASUREMENTS = 1
+N_MEASUREMENTS = 10
 T_DEPOSITION = INFUSION_VOLUME / N_MEASUREMENTS / (FLOW_RATE * FLOWRATE_CONVERSION)
 STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
 
