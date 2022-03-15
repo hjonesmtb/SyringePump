@@ -6,6 +6,7 @@ import binascii
 import time
 import math
 import numpy as np
+from system_data import System_Data
 
 #User inputs
 technique = 2 #square wave voltammetry
@@ -36,7 +37,7 @@ class Emstat:
                 print("COM port is not available")
         self.swv_params = self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequency, e_cond, t_cond)
         self.deposition_potential = e_dep
-    
+
     @classmethod
     def from_parameters(cls, system_data):
         return cls(system_data.pstat_com, system_data.e_cond, system_data.t_cond, system_data.e_dep, system_data.t_dep, system_data.t_equil, system_data.e_begin, system_data.e_end, system_data.e_step, system_data.amplitude, system_data.frequency)
@@ -55,34 +56,34 @@ class Emstat:
     # Runs constant voltage measurement at potential V for time_chrono s with n multiplexer channels
     def deposition(self, dep_time, eDep_e1, eDep_e2, sensing_electrode):
         #Sets potential on non-sensing electrode:
-        if sensing_electrode = [0,1]:
+        if sensing_electrode == [0,1]:
             n_channels = 1
             sensing_dep = eDep_e2 #deposition potential for current reading
             nonsensing_dep = eDep_e1
             nonsensing_channel = '0200'
             sensing_channel = '0100'
-        if sensing_electrode = [1,0]:
+        if sensing_electrode == [1,0]:
             n_channels = 1
             sensing_dep = eDep_e1 #deposition potential for current reading
             nonsensing_dep = eDep_e2
             nonsensing_channel = '0100'
             sensing_channel = '0200'
-        if sensing_electrode = [1,1]:
+        if sensing_electrode == [1,1]:
             n_channels = 2
             sensing_channel = '0100'
             sensing_dep = eDep_e1
 
-        if n_channels = 1:
-            self.emstat_ready('c')
-            self.sendData('m' + nonsensing_channel)
-            command = self.potential_to_cmd(nonsensing_dep, False)
-            command = 'D' + command
-            self.sendData(command)
+        if n_channels == 1:
+            # self.emstat_ready('c')
+            # self.sendData('m' + nonsensing_channel)
+            # command = self.potential_to_cmd(nonsensing_dep, False)
+            # command = 'D' + command
+            # self.sendData(command)
 
-            self.sendData('m' + sensing_channel)
+            # self.sendData('m' + sensing_channel)
             self.chronoamp(sensing_dep, n_channels, dep_time)
 
-        if n_channels = 2:
+        if n_channels == 2:
             self.sendData('m' + sensing_channel)
             self.chronoamp(sensing_dep, n_channels, dep_time)
 
@@ -90,9 +91,9 @@ class Emstat:
     def chronoamp(self, potential, n_channels, dep_time):
         zero = self.potential_to_cmd(0) #convert 0V to bytes
         e_constant = self.potential_to_cmd(potential) #convert set potential to bytes
-        if n_channels = 1:
+        if n_channels == 1:
             tInt = 0.1 #set tInt. Cannot be less than 0.25s if multiplexer present
-        if n_channels = 2:
+        if n_channels == 2:
             tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
         nPoints = dep_time / tInt #define the number of points
         tmeas = tInt / 2 #defined p. 32 of comm protocol
@@ -105,8 +106,11 @@ class Emstat:
         L_command = ("technique=7\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
         {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstby={}\nnPoints= \
         {}\ntInt={}\nmux_delay=0\nnmux={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
-        (eCond = zero, tCond = 0, eDep = zero, tDep = 0, tEquil = 0, cr_min, cr_max, \
+        (zero, 0, zero, 0, 0, cr_min, cr_max, \
         cr, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
+
+        # (eCond = zero, tCond = 0, eDep = zero, tDep = 0, tEquil = 0, cr_min, cr_max, \
+        # cr, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
 
         self.emstat_ready("L")
         self.sendData(L_command)
@@ -146,7 +150,7 @@ class Emstat:
                         package = package + char
                     char = self.readData(1).decode()
                 print(package)
-                if len(package) != : #Check to make sure packages are the right length
+                if len(package) != 16: #Check to make sure packages are the right length
                     raise ValueError('U package not 16 characters')
                 potential, current, current_overload, current_underload = process_U(package)
                 potential_dep.append(potential)
@@ -154,6 +158,7 @@ class Emstat:
                 overload_dep.append(current_overload)
                 underload_dep.append(current_underload)
                 time.append(time.time()-starttime)
+                System_Data.write_chrono(potential_dep, current_dep, overload_dep, underload_dep)
         return
 
     '''Sends a key(c or L) to the emstat, waits until the key is returned to make sure
@@ -169,7 +174,6 @@ class Emstat:
             if count > 30:
                 self.sendData(key) #Try again
         return
-
 
     #Runs swv sweep, returns array with potential, current, overload and underload arrays
     def sweepSWV(self):
@@ -222,11 +226,14 @@ class Emstat:
         if (int(U_data[10:12], 16) & int('40', 16) == int('40', 16)):
             current_underload = True
             print("current underload")
-    return potential, current, current_overload, current_underload
+        return potential, current, current_overload, current_underload
 
     def process_P(self, P_data):
-
-    return potential1, potential2, current1, current2
+        potential1 = 0
+        potential2 = 0
+        current1 = 0
+        current2 = 2
+        return potential1, potential2, current1, current2
 
     #Runs measurement with defined L command parameter. L command is a string formatted as in p.26 of comm protocol
     def run_swv(self):
@@ -287,6 +294,7 @@ class Emstat:
                 current_swv.append(current)
                 overload_swv.append(current_overload)
                 underload_swv.append(current_underload)
+                System_Data.write_chrono(potential_swv, current_swv, overload_swv, underload_swv)
             print("measurement complete")
         except Exception as e:
             print("Process terminated")
