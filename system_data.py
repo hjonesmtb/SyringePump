@@ -55,8 +55,14 @@ class System_Data:
         self.flowrate_conversion = FLOWRATE_CONVERSION
         self.measurements = 0
 
-    def write_IV(self, pot, cur, over, under):
-        self.current = cur
+    def write_sqv(self, pot, cur, over, under):
         self.potential = pot
+        self.current = cur
+        self.overload = over
+        self.underload = under
+
+    def write_chrono(self, pot, cur, over, under):
+        self.potential = pot
+        self.current = cur
         self.overload = over
         self.underload = under
