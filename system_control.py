@@ -63,9 +63,8 @@ def com_window():
 def usb_gui_format(usbs, port_name):
     layout =[
             [sg.Text('Pump Control', size=(40, 1), justification='center', font='Helvetica 20')],
-            [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, key=('-PumpPort-'))],
-            [sg.Text('Syringe Pump Baudrate', size=(20, 1), font='Helvetica 12'), sg.InputText(system_data.pump_baud, key='-baud-')],
-            [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, key=("-PStatPort-"))],
+            [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, size=(10,1),key=('-PumpPort-'))],
+            [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, size=(10,1),key=("-PStatPort-"))],
             [sg.Text('List of Detected Ports', size=(20, 1), font='Helvetica 12'), sg.Combo(usbs, key=("-usbs-"))],
             [sg.Canvas(key='controls_cv')],
             [sg.Canvas(size=(650, 30), key='-CANVAS-')],
@@ -84,7 +83,7 @@ def control_windows():
 
 def voltammetry_gui_format():
     swv_parameters = [
-            [sg.Text('SWV Settings', size=(40, 1), justification='center', font='Helvetica 20')],
+            [sg.Text('Square Wave Voltammetry Settings', size=(40, 1), justification='center', font='Helvetica 20')],
             [sg.Text('E condition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_cond)],
             [sg.Text('t condition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_cond)],
             [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_dep)],
@@ -101,6 +100,7 @@ def Test_GUI_Format(SWV_parameters):
     layout =[
             [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name)],
             [sg.Text('Pump Settings', size=(40, 1),justification='center', font='Helvetica 20')],
+            [sg.Text('Syringe Diammeter [mm]', size=(15,1), font='Helvetica 12'), sg.InputText(system_data.syringe_diam)],
             [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate)],
             [sg.Text('Infusion volume [mL]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.volume)],
             [sg.Text('# Measurements', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.n_measurements)],
@@ -145,7 +145,6 @@ def com_window_process():
 
         if event in ('Submit', None):
             system_data.pump_com = values['-PumpPort-']
-            system_data.pump_baud = int(values['-baud-'])
             system_data.pstat_com = values['-PStatPort-']
             break
 
@@ -170,12 +169,12 @@ def parameter_window_process():
         if event in ('Start', None):
             print(event, values)
             system_data.test_name = values[0]
-            system_data.flow_rate, system_data.volume, system_data.n_measurements = int(values[1]), int(values[2]), int(values[3])
-            system_data.e_cond, system_data.t_cond = float(values[4]), float(values[5])
-            system_data.e_dep = float(values[6])
-            system_data.t_equil = float(values[7])
-            system_data.e_begin, system_data.e_end, system_data.e_step = float(values[8]), float(values[9]), float(values[10])
-            system_data.amplitude, system_data.frequency = float(values[11]), float(values[12])
+            system_data.flow_rate,system_data.syringe_diam, system_data.volume, system_data.n_measurements = float(values[1]), float(values[2]), float(values[3]), float(values[4])
+            system_data.e_cond, system_data.t_cond = float(values[5]), float(values[6])
+            system_data.e_dep = float(values[7])
+            system_data.t_equil = float(values[8])
+            system_data.e_begin, system_data.e_end, system_data.e_step = float(values[9]), float(values[10]), float(values[11])
+            system_data.amplitude, system_data.frequency = float(values[12]), float(values[13])
             break
 
     path = os.getcwd() + '\data'
@@ -207,14 +206,21 @@ def connect_to_pstat():
     #return Emstat(system_data.["pstat_com"], system_data.["e_cond"], system_data.["t_cond"], system_data.["e_dep"], system_data.["t_dep"], system_data.["t_equil"], system_data.["e_begin"], system_data.["e_end"], system_data.["e_step"], system_data.["amplitude"], system_data.["frequency"])
 
 def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
-    data_queue = queue.Queue()
-    thread = threading.Thread(target=take_measurement(data_queue, pump, pstat))
-    thread.start()
-    system_data.write_IV(np.zeros(100), np.zeros(100))
+    #data_queue = queue.Queue()
+    #thread = threading.Thread(target=take_measurement(data_queue, pump, pstat))
+    #thread.start()
+    # for measure in range(system_data.n_measurements):
+    #     data_queue.put(system_data)
+    system_data.write_IV(np.zeros(100), np.zeros(100),np.zeros(100),np.zeros(100))
     # toggle flow on/off while measuring pstat
     while True:
         # start flow, deposit norfentynal
-        data_queue.put(system_data)
+        
+        pump.infuse()
+        pstat.deposition(system_data.t_dep)
+        pump.stop()
+        system_data.write_IV(pstat.sweepSWV())
+        system_data.measurements += 1
         plt.figure(1)
         ax.grid() # draw the grid
         ax.plot(system_data.potential,system_data.current) #plot new pstat readings
@@ -235,7 +241,7 @@ def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
 
         # Stop program when we've completed all measurements
         if system_data.measurements >= system_data.n_measurements:
-            thread.join()
+            #thread.join()
             pump.stop()
             pump.close()
             pstat.close()
@@ -250,7 +256,7 @@ def take_measurement(data_queue, pump, pstat):
         pstat.deposition(data.t_dep)
         pump.stop()
         data.write_IV(pstat.sweepSWV())
-        system_data.measurements += 1
+        data.measurements += 1
         data_queue.task_done()
 
 """Main process for GUI windows. Process occurs in the following steps:

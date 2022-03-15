@@ -85,8 +85,7 @@ class Emstat:
         T_data, U_data = self.run_swv()
         potential_T, current_T, noise_T, overload_T, underload_T = self.process_T(T_data)
         potential_U, current_U, overload_U, underload_U = self.process_U(U_data)
-        data_array = [potential_U, current_U, overload_U, underload_U]
-        return data_array
+        return potential_U, current_U, overload_U, underload_U
 
     #Converts bytes to voltage, current, stage, I status and range, Aux input, for Tpackages
     def process_T(self, T_data):
