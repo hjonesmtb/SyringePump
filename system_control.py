@@ -120,8 +120,8 @@ def Plot_GUI_Format(window):
     #draw the initial plot in the window
     fig = plt.figure(1)
     ax = fig.add_subplot(111)
-    ax.set_xlabel('Time (s)')
-    plt.xlim([0,200])
+    ax.set_xlabel('Voltage (V)')
+    # plt.xlim([0,200])
     ax.set_ylabel('Current (uA)')
     fig_agg = draw_figure(canvas, fig)
 
