@@ -27,6 +27,7 @@ STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
 class System_Data:
     def __init__(self):
         # measurment data
+        self.time_log = []
         self.current_swv = []
         self.potential_swv = []
         self.overload_swv = []
@@ -65,7 +66,8 @@ class System_Data:
         self.overload_swv = over
         self.underload_swv = under
 
-    def write_dep(self, pot, cur, over, under):
+    def write_dep(self, time_log, pot, cur, over, under):
+        self.time_log = time_log
         self.potential_dep = pot
         self.current_dep = cur
         self.overload_dep = over

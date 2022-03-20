@@ -167,7 +167,7 @@ class Emstat:
                 underload_dep.append(current_underload)
                 time_log.append(time.time()-starttime)
                 print(potential, current)
-                self.system_data.write_dep(potential_dep, current_dep, overload_dep, underload_dep)
+                self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
         return
 
     '''Sends a key(c or L) to the emstat, waits until the key is returned to make sure

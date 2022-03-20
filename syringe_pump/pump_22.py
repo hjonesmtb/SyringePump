@@ -2,7 +2,6 @@
 	Github Links:
 		https://github.com/tomwphillips/pumpy/blob/master/pumpy.py
 		https://github.com/bgamari/harvard-syringe-pump/blob/master/harvardpump/pump.py
-
 	Manuals:
 		https://www.harvardapparatus.com/media/harvard/pdf/552222_Pump_22_Manual.pdf
 		https://www.harvardapparatus.com/media/harvard/pdf/702208_Pump_11_Plus_Manual.pdf
@@ -30,18 +29,19 @@ class Pump():
 
 	def __init__(self, ser, baudrate):
 		#self.port = serial.Serial(port = 'COM{}', stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
-		pump_connected = False
-		# while not pump_connected:
-		# try:
-		self.ser = serial.Serial(port = ser, stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 200)
-		if self.ser.isOpen():
-			print("pump port opened successfully")
-		pump_connected = True
-		# except:
-		# 	print(ser)
-		# 	print("COM port is not available")
+		try:
+			self.ser = serial.Serial(port = ser, stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
+			if self.ser.isOpen():
+				print("pump port opened successfully")
+		except:
+			print(ser)
+			print("COM port is not available")
 		self.ser.flushInput()
 		self.ser.flushOutput()
+
+	@classmethod
+	def from_parameters(cls, system_data):
+		return cls(system_data.pump_com, system_data.pump_baud)
 
 	def close(self):
 		self.write("KEY")
@@ -58,7 +58,6 @@ class Pump():
 		Basic write operation to the pump.
 		cmd: string with the desired pump command. Must be
 			 a valid command from page 23 of the data sheet.
-
 		prompt: The return prompt from the syringe pump
 	"""
 	def write(self, cmd):
@@ -74,7 +73,6 @@ class Pump():
 		Basic query operation to the pump.
 		cmd: string with the desired pump command. Must be
 			 a valid command from page 23 of the data sheet.
-
 		value: The return value from the syringe pum
 		prompt: The return prompt from the syringe pump
 	"""
@@ -117,6 +115,7 @@ class Pump():
 
 	# Set the syringe diameter
 	def set_diameter(self, diameter):
+		print(diameter)
 		response = self.write("MMD{}".format(diameter))
 		self.print_state(response)
 

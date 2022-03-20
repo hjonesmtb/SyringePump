@@ -1,12 +1,16 @@
 """
+Main controler for the Fentanyl Quantification System.
+To use the application the following libraries will need to be installed:
+    pandas
+    matplotlib
+    PySimpleGUI
+    serial.tools
+References:
 Serial library
 https://pyserial.readthedocs.io/en/latest/tools.html
-
 """
-
-
+import sys
 import time
-
 import PySimpleGUI as sg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, FigureCanvasAgg
 from matplotlib.figure import Figure
@@ -15,106 +19,97 @@ import numpy as np
 import os
 from datetime import datetime
 import pandas as pd
-
 from serial.tools import list_ports
+import threading, queue
+
 from syringe_pump.pump_22 import Pump
 from emstat.emstat_communication import Emstat
-
-def draw_figure(canvas, figure, loc=(0, 0)):
-    figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
-    figure_canvas_agg.draw()
-    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
-    return figure_canvas_agg
+from system_data import System_Data
 
 
 SYMBOL_UP =    '▲'
 SYMBOL_DOWN =  '▼'
 
-
-def collapse(layout, key):
-    """
+#System_Data class is initialized with default values.
+#This class will hold the data read from the potentiostat for generating plots and saving to a .csv
+system_data = System_Data()
+"""
     Helper function that creates a Column that can be later made hidden, thus appearing "collapsed"
     :param layout: The layout for the section
     :param key: Key used to make this seciton visible / invisible
     :return: A pinned column that can be placed directly into your layout
     :rtype: sg.pin
     """
-    return sg.pin(sg.Column(layout, key=key))
 
-#boiler plate code for start page. Choose COM ports
-#TODO: define new variable emstat_com
-def com_windows():
+#boiler plate code for USB port selection page.
+def com_window():
 
     #creates a list of the names of all current usb devices.
     usbs = list_ports.comports()
-
-    portName = []
+    port_name = []
     for usb in usbs:
-        portName.append(usb.name)
+        port_name.append(usb.name)
 
-    layout = [
-			     [sg.Text('Pump Control', size=(40, 1),
-					justification='center', font='Helvetica 20')],
-
-                 [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12')],
-                 [sg.Combo(usbs)],
-       			 [sg.Combo(portName)],
-       			 [sg.Text('Syringe Pump Baudrate', size=(15, 1), font='Helvetica 12'), sg.InputText('1200')],
-                 [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12')],
-       			 [sg.Combo(portName)],
-
-		         [sg.Canvas(key='controls_cv')],
-                 [sg.Canvas(size=(650, 30), key='-CANVAS-')],
-
-		        [sg.Button('Submit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')]
-		        ]
+    layout = usb_gui_format(usbs, port_name)
 
     # create the form and show it without the plot
-    window = sg.Window('Start Screen',
-                layout, finalize=True, resizable=True)
-
-    canvas_elem = window['-CANVAS-']
-    canvas = canvas_elem.TKCanvas
-
+    window = sg.Window('Select USB Ports', layout, finalize=True, resizable=True)
     return window
+
+def usb_gui_format(usbs, port_name):
+    layout =[
+            [sg.Text('Pump Control', size=(40, 1), justification='center', font='Helvetica 20')],
+            [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, size=(10,1),key=('-PumpPort-'))],
+            [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, size=(10,1),key=("-PStatPort-"))],
+            [sg.Text('List of Detected Ports', size=(20, 1), font='Helvetica 12'), sg.Combo(usbs, key=("-usbs-"))],
+            [sg.Canvas(key='controls_cv')],
+            [sg.Canvas(size=(650, 30), key='-CANVAS-')],
+            [sg.Button('Submit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')],
+            ]
+    return layout
 
 #boiler plate code for entering parameters
 def control_windows():
     SWV_parameters = voltammetry_gui_format()
     layout = Test_GUI_Format(SWV_parameters)
     window = sg.Window('Start Screen', layout, finalize=True, resizable=True)
-    axdep, axswv, fig_agg = Plot_GUI_Format(window)
+    axswv, axdep, fig_agg = Plot_GUI_Format(window)
 
-    return window, axdep, axswv, fig_agg
+    return window, axswv, axdep, fig_agg
 
-            [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
-            [sg.Text('E begin [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('-0.4')],
-            [sg.Text('E stop [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.4')],
-            [sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.005')],
-            [sg.Text('Amplitude [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.01')],
-            [sg.Text('Frequency [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText('7')]]
+def voltammetry_gui_format():
+    swv_parameters = [
+            [sg.Text('Square Wave Voltammetry Settings', size=(40, 1), justification='center', font='Helvetica 20')],
+            [sg.Text('E condition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_cond)],
+            [sg.Text('t condition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_cond)],
+            [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_dep)],
+            [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_equil)],
+            [sg.Text('E begin [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_begin)],
+            [sg.Text('E stop [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_end)],
+            [sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_step)],
+            [sg.Text('Amplitude [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.amplitude)],
+            [sg.Text('Frequency [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.frequency)]
+            ]
+    return swv_parameters
 
-    layout = [
-
-            [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText('')],
+def Test_GUI_Format(SWV_parameters):
+    layout =[
+            [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name)],
             [sg.Text('Pump Settings', size=(40, 1),justification='center', font='Helvetica 20')],
-            [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText('1000')],
-            [sg.Text('Infusion volume [mL]', size=(15, 1), font='Helvetica 12'), sg.InputText('1')],
-            [sg.Text('# Measurements', size=(15, 1), font='Helvetica 12'), sg.InputText('1')],
-
+            [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate)],
+            [sg.Text('Syringe Diameter [mm]', size=(15,1), font='Helvetica 12'), sg.InputText(system_data.syringe_diam)],
+            [sg.Text('Infusion volume [mL]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.volume)],
+            [sg.Text('# Measurements', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.n_measurements)],
             [sg.T(SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-', text_color='white'), sg.T('SWV parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
             [collapse(SWV_parameters, '-SEC1-')],
-
             [sg.Button('Start', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')],
-
             [sg.Canvas(key='controls_cv')],
-            [sg.Canvas(size=(900, 500), key='-CANVAS-')],
+            [sg.Canvas(size=(650, 30), key='-CANVAS-')],
             [sg.Button('Exit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')]
             ]
+    return layout
 
-    window = sg.Window('Start Screen',
-                layout, finalize=True, resizable=True)
-
+def Plot_GUI_Format(window):
     canvas_elem = window['-CANVAS-']
     canvas = canvas_elem.TKCanvas
 
@@ -129,7 +124,7 @@ def control_windows():
     axswv.set_ylabel('Current (uA)')
     fig_agg = draw_figure(canvas, fig)
 
-    return axdep, axswv, fig_agg
+    return axswv, axdep, fig_agg
 
 def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
@@ -137,18 +132,20 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
     return figure_canvas_agg
 
-    return window, ax, fig_agg
+#allows section of GUI to be collapsed
+def collapse(layout, key):
+    return sg.pin(sg.Column(layout, key=key))
 
-def main():
-    opened1 = True
-    COM_select = com_windows()
+#Opens usb selection window
+#returns pump port, pump baud rate, and potentiostat port.
+def com_window_process():
+    COM_select = com_window()
     while True:
-        event, comReadout = COM_select.read(timeout=10)
+        event, values = COM_select.read(timeout=10)
 
         if event in ('Submit', None):
-            pump_com = comReadout[1]
-            pump_baud = int(comReadout[2])
-            pstat_com = comReadout[3]
+            system_data.pump_com = values['-PumpPort-']
+            system_data.pstat_com = values['-PStatPort-']
             break
 
     COM_select.close()
@@ -156,13 +153,7 @@ def main():
 def parameter_window_process():
     #value for tracking the state of the collapsable window being expanded or not.
     is_expanded = True
-    window, axdep, axswv, fig_agg = control_windows()
-
-    # Measurement parameters
-    flow_rate, volume = 0,0
-    e_cond, e_dep, e_begin, e_end, e_step = 0,0,0,0,0
-    t_cond, t_dep, t_equil = 0,0,0
-    amplitude, frequency = 0, 0
+    window, axswv, axdep, fig_agg = control_windows()
 
     # Enter measurement parameters and start pumping
     while True:
@@ -171,37 +162,38 @@ def parameter_window_process():
             break
 
         if event.startswith('-OPEN SEC1-'):
-            opened1 = not opened1
-            window['-OPEN SEC1-'].update(SYMBOL_DOWN if opened1 else SYMBOL_UP)
-            window['-SEC1-'].update(visible=opened1)
+            is_expanded = not is_expanded
+            window['-OPEN SEC1-'].update(SYMBOL_DOWN if is_expanded else SYMBOL_UP)
+            window['-SEC1-'].update(visible=is_expanded)
 
         if event in ('Start', None):
             print(event, values)
-            test_name = values[0]
-            flow_rate, volume, nmeasurements = int(values[1]), int(values[2]), int(values[3])
-            e_cond, t_cond = float(values[4]), float(values[5])
-            e_dep = float(values[6])
-            t_equil = float(values[7])
-            e_begin, e_end, e_step = float(values[8]), float(values[9]), float(values[10])
-            amplitude, frequency = float(values[11]), float(values[12])
+            system_data.test_name = values[0]
+            system_data.flow_rate,system_data.syringe_diam, system_data.volume, system_data.n_measurements = float(values[1]), float(values[2]), float(values[3]), float(values[4])
+            system_data.e_cond, system_data.t_cond = float(values[5]), float(values[6])
+            system_data.e_dep = float(values[7])
+            system_data.t_equil = float(values[8])
+            system_data.e_begin, system_data.e_end, system_data.e_step = float(values[9]), float(values[10]), float(values[11])
+            system_data.amplitude, system_data.frequency = float(values[12]), float(values[13])
             break
 
     path = os.getcwd() + '\data'
-    new_folder = test_name + '_' + datetime.now().strftime("%Y_%m_%d_%I_%M_%S_%p")
+    new_folder = system_data.test_name
     data_folder = os.path.join(path, new_folder)
     if not os.path.exists(data_folder):
         os.makedirs(data_folder)
         os.makedirs(os.path.join(data_folder, 'plots'))
         os.makedirs(os.path.join(data_folder, 'csv'))
-    return window, axdep, axswv, fig_agg, data_folder
+    return window, axswv, axdep, fig_agg, data_folder
 
 def connect_to_pump():
     # connect to pump
-    pump = Pump(pump_com, pump_baud)
+    pump = Pump.from_parameters(system_data)
+    #pump = Pump(system_data.["pump_com"], system_data.["pump_baud"])
 
-    pump.set_diameter(10) # Fixed syringe diameter
-    pump.set_rate(flow_rate,'uL/min')
-    pump.set_volume(volume)
+    pump.set_diameter(system_data.syringe_diam) # Fixed syringe diameter
+    pump.set_rate(system_data.flow_rate,'uL/min')
+    pump.set_volume(system_data.volume)
     pump.reset_acc() # reset accumulated volume to zero
     return pump
 def connect_to_pstat():
@@ -213,7 +205,7 @@ def connect_to_pstat():
     return Emstat.from_parameters(system_data)
     #return Emstat(system_data.["pstat_com"], system_data.["e_cond"], system_data.["t_cond"], system_data.["e_dep"], system_data.["t_dep"], system_data.["t_equil"], system_data.["e_begin"], system_data.["e_end"], system_data.["e_step"], system_data.["amplitude"], system_data.["frequency"])
 
-def conduct_measurements(pstat, pump, window, axdep, axswv, fig_agg, data_folder):
+def conduct_measurements(pstat, pump, window, axswv, axdep, fig_agg, data_folder):
     #data_queue = queue.Queue()
     #thread = threading.Thread(target=take_measurement(data_queue, pump, pstat))
     #thread.start()
@@ -223,7 +215,6 @@ def conduct_measurements(pstat, pump, window, axdep, axswv, fig_agg, data_folder
     # toggle flow on/off while measuring pstat
     while True:
         # start flow, deposit norfentynal
-
         # pump.infuse()
         pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
         plt.figure(1)
@@ -248,7 +239,7 @@ def conduct_measurements(pstat, pump, window, axdep, axswv, fig_agg, data_folder
         fig_agg.draw()
         fig2 = plt.figure(2)
         plt.clf()
-        plt.plot(IV[0],IV[1])
+        plt.plot(system_data.potential_swv,system_data.current_swv)
         plt.xlabel('Potential (V)')
         plt.ylabel('Current (uA)')
         plt.savefig(data_folder + '/plots/' + str(system_data.measurements) + '.png')
@@ -257,16 +248,15 @@ def conduct_measurements(pstat, pump, window, axdep, axswv, fig_agg, data_folder
         # plt.xlabel('Potential (V)')
         # plt.ylabel('Current (uA)')
         # plt.savefig(data_folder + '/plots/dep/' + str(system_data.measurements) + '.png')
-
         window.read(20)
 
         # Stop program when we've completed all measurements
-        if measurement >= nmeasurements:
-            pump.stop()
-            pump.close()
+        if system_data.measurements >= system_data.n_measurements:
+            #thread.join()
+            # pump.stop()
+            # pump.close()
             pstat.close()
             break
-
 
 def take_measurement(data_queue, pump, pstat):
     while True:
@@ -280,7 +270,6 @@ def take_measurement(data_queue, pump, pstat):
         data_queue.task_done()
 
 """Main process for GUI windows. Process occurs in the following steps:
-
 1). The USB port selection window appears allowing the user to select the correct usb connections
     for the potentiostat and the syringe pump.
 2). The parameter setting window appears allowing for a test to be named
@@ -288,28 +277,24 @@ def take_measurement(data_queue, pump, pstat):
 3). The syringe pump is connected via serial.
 4). The potentiostat is connected via serial.
 5). The square wave voltametry is conducted and data is saved to csv file.
-
 """
 def main():
     #Step 1: USB ports are selected by user input.
     com_window_process()
     #Step 2: System Parameters are set by user input.
-    window, axdep, axswv, fig_agg, data_folder = parameter_window_process()
+    window, axswv, axdep, fig_agg, data_folder = parameter_window_process()
     #Step 3:
-    pump = connect_to_pump()
+    # pump = connect_to_pump()
+    pump = True
     #Step 4:
     pstat = connect_to_pstat()
     #Step 5:
-    conduct_measurements(pstat, pump, window, axdep, axswv, fig_agg, data_folder)
-
+    conduct_measurements(pstat, pump, window, axswv, axdep, fig_agg, data_folder)
 
    #Keeps measurement window open until closed
     while True:
         event, values = window.read(timeout=10)
         if event == sg.WIN_CLOSED or event == 'Exit':
-            pstat.close()
-            pump.stop()
-            pump.close()
             break
 
 if __name__ == '__main__':
