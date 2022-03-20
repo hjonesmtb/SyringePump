@@ -16,10 +16,11 @@ E_BEGIN = -0.4  # V
 E_STOP = 0.4  # V
 E_STEP = 0.005  # V
 AMPLITUDE = 0.01  # V
-FREQUENCY = 7  # Hz
+FREQUENCIES = [37, 25, 7] # Hz
 FLOW_RATE = 1000  # uL/min
 INFUSION_VOLUME = 1  # mL
 N_MEASUREMENTS = 10
+N_ELECTRODES = 1
 T_DEPOSITION = INFUSION_VOLUME / N_MEASUREMENTS / (FLOW_RATE * FLOWRATE_CONVERSION)
 STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
 
@@ -36,13 +37,19 @@ class System_Data:
         self.overload_dep = []
         self.underload_dep = []
         self.noise = []
+        # test types
+        self.test_types = []
+        self.test_types.append("Stop-Flow")
+        self.test_types.append("Chronoamperometry")
+        self.test_types.append("Cyclic Voltametry")
+        self.test_type = self.test_types[0]
         # system parameters
         self.pump_com = PUMP_COM
         self.pump_baud = PUMP_BAUD
         self.pstat_com = PSTAT_COM
         self.test_name = TEST_NAME
         self.flow_rate = FLOW_RATE
-        self.volume = INFUSION_VOLUME
+        self.infusion_volume = INFUSION_VOLUME
         self.e_cond = E_CONDITION
         self.e_dep = E_DEPOSITION
         self.e_begin = E_BEGIN
@@ -52,11 +59,12 @@ class System_Data:
         self.t_dep = T_DEPOSITION
         self.t_equil = T_EQUILIBRATION
         self.amplitude = AMPLITUDE
-        self.frequency = FREQUENCY
+        self.frequencies = FREQUENCIES
         self.n_measurements = N_MEASUREMENTS
         self.step_volume = STEP_VOLUME
         self.syringe_diam = SYRINGE_DIAM
         self.flowrate_conversion = FLOWRATE_CONVERSION
+        self.n_electrodes = N_ELECTRODES
         self.measurements = 0
 
     def write_swv(self, pot, cur, over, under):
@@ -70,3 +78,11 @@ class System_Data:
         self.current_dep = cur
         self.overload_dep = over
         self.underload_dep = under
+    # will be different for different types of tests
+    def save_data(self, test_type):
+        return
+
+    def plot_data(self):
+        return
+
+    

@@ -31,7 +31,7 @@ class Pump():
 	def __init__(self, ser, baudrate):
 		#self.port = serial.Serial(port = 'COM{}', stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
 		try:
-			self.ser = serial.Serial(port = ser, stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
+			self.ser = serial.Serial(port = ser, stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 10)
 			if self.ser.isOpen():
 				print("pump port opened successfully")
 		except:

@@ -271,7 +271,7 @@ class Emstat:
                     n += 1
 
             if not skip_T:
-                while char != 'U': #Write T poackages as long as no U is read
+                while char != 'U': #Write T packages as long as no U is read
                     package = ''
                     char = self.readData(1).decode()
                     while char != "T" and char != "M" and char != "U": #M is the present at the end of the last T-package

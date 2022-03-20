@@ -46,7 +46,7 @@ system_data = System_Data()
     """
 
 #boiler plate code for USB port selection page.
-def com_window():
+def test_settings_window():
 
     #creates a list of the names of all current usb devices.
     usbs = list_ports.comports()
@@ -54,62 +54,100 @@ def com_window():
     for usb in usbs:
         port_name.append(usb.name)
 
-    layout = usb_gui_format(usbs, port_name)
+    layout = test_settings_gui_format(usbs, port_name)
 
     # create the form and show it without the plot
-    window = sg.Window('Select USB Ports', layout, finalize=True, resizable=True)
+    window = sg.Window('Test Settings', layout, finalize=True, resizable=True)
     return window
 
-def usb_gui_format(usbs, port_name):
+def test_settings_gui_format(usbs, port_name):
     layout =[
-            [sg.Text('Pump Control', size=(40, 1), justification='center', font='Helvetica 20')],
-            [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, size=(10,1),key=('-PumpPort-'))],
-            [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, size=(10,1),key=("-PStatPort-"))],
-            [sg.Text('List of Detected Ports', size=(20, 1), font='Helvetica 12'), sg.Combo(usbs, key=("-usbs-"))],
-            [sg.Canvas(key='controls_cv')],
-            [sg.Canvas(size=(650, 30), key='-CANVAS-')],
-            [sg.Button('Submit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')],
+            [sg.Text('Test Settings', size=(40, 1),justification='left', font='Helvetica 20')],
+            # [sg.Text('Test Name', size=(20, 1), font='Helvetica 12'), sg.InputText(system_data.test_name, key=('-TestName-'))],
+            [sg.Text('Test Type', size=(20, 1), font='Helvetica 12'), sg.Combo(system_data.test_types, size=(20,1),default_value=system_data.test_type,key=('-TestType-'))],
+            [sg.Text('# Electrodes', size=(20, 1), font='Helvetica 12'), sg.InputText(system_data.n_electrodes, key=('-NElectrodes-'))],
+            # [sg.Text('# Measurements', size=(20, 1), font='Helvetica 12'), sg.InputText(system_data.n_measurements, key=('-NMeasurements-'))],
+            # [sg.Text('Measurement Volume [uL]', size=(20, 1), font='Helvetica 12'), sg.InputText(system_data.step_volume*1000, key=('-StepVolume-'))], 
+            # [sg.Text('Flow rate [uL/min]', size=(20, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
+            [sg.Text('Syringe Diameter [mm]', size=(20,1), font='Helvetica 12'), sg.InputText(system_data.syringe_diam, key=('-SyringeDiam-'))],
+            [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, size=(20,1),key=('-PumpPort-'))],
+            [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, size=(20,1),key=("-PStatPort-"))],
+            [sg.Text('List of Detected Ports', size=(20, 1), font='Helvetica 12'), sg.Listbox(usbs, size=(20, len(usbs)), key=("-usbs-"))],
+            [sg.Canvas(key='-controls_cv-')],
+            [sg.Button('Next', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')],
             ]
     return layout
 
 #boiler plate code for entering parameters
 def control_windows():
-    SWV_parameters = voltammetry_gui_format()
-    layout = Test_GUI_Format(SWV_parameters)
+    
+    layout = parameters_Format()
     window = sg.Window('Start Screen', layout, finalize=True, resizable=True)
     ax, fig_agg = Plot_GUI_Format(window)
 
     return window, ax, fig_agg
 
 def voltammetry_gui_format():
+    layout = []
+    if(system_data.test_type == 'Stop-Flow'):
+        layout = swv_format()
+    if(system_data.test_type == 'Chronoamperometry'):
+        layout = chronoamp_format()
+    if(system_data.test_type == 'Cyclic Voltametry'):
+        layout = cyclic_format()
+    else:
+        print("Failed to pick test name")
+    return layout
+   
+
+def swv_format():
     swv_parameters = [
-            [sg.Text('Voltammetry Settings', size=(40, 1), justification='center', font='Helvetica 20')],
-            [sg.Text('E condition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_cond)],
-            [sg.Text('t condition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_cond)],
-            [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_dep)],
-            [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_equil)],
-            [sg.Text('E begin [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_begin)],
-            [sg.Text('E stop [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_end)],
-            [sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_step)],
-            [sg.Text('Amplitude [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.amplitude)],
-            [sg.Text('Frequency [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.frequency)]
+            [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name, key=('-TestName-'))],
+            [sg.Text('Stop', size=(15, 1), font='Helvetica 14')],
+            [sg.Text('# Measurements', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.n_measurements, key=('-NMeasurements-'))],
+            [sg.Text('Measurement Volume [uL]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.step_volume*1000, key=('-StepVolume-'))], 
+            [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
+            [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_dep, key='-E_dep-')],
+            [sg.Text('Flow', size=(15, 1), font='Helvetica 14')],
+            [sg.Text('E condition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_cond, key='-E_cond-')],
+            [sg.Text('t condition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_cond, key='-T_cond-')],
+            [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_equil, key='-T_equil-')],
+            [sg.Text('E begin [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_begin, key='-E_begin-')],
+            [sg.Text('E stop [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_end, key='-E_end-')],
+            [sg.Text('E step [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_step, key='-E_step-')],
+            [sg.Text('Amplitude [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.amplitude, key='-Amp-')],
+            [sg.Text('Frequency 1 [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.frequencies[0], key='-Freq_1-')],
+            [sg.Text('Frequency 2 [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.frequencies[1], key='-Freq_2-')],
+            [sg.Text('Frequency 3 [Hz]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.frequencies[2], key='-Freq_3-')],
             ]
     return swv_parameters
 
-def Test_GUI_Format(SWV_parameters):
+def cyclic_format():
+    print("Not supported")
+    return []
+
+def chronoamp_format():
+    chrono_parameters = [
+            [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name, key=('-TestName-'))],
+            [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
+           
+            [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_dep, key='-E_dep-')],
+            [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_equil, key='-T_equil-')],
+            [sg.Text('t deposition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_dep, key='-T_dep-')],
+            ]
+    return chrono_parameters
+
+def parameters_Format():
+    V_parameters = voltammetry_gui_format()
     layout =[
-            [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name)],
-            [sg.Text('Pump Settings', size=(40, 1),justification='center', font='Helvetica 20')],
-            [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate)],
-            [sg.Text('Syringe Diameter [mm]', size=(15,1), font='Helvetica 12'), sg.InputText(system_data.syringe_diam)],
-            [sg.Text('Infusion volume [mL]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.volume)],
-            [sg.Text('# Measurements', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.n_measurements)],
-            [sg.T(SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-', text_color='white'), sg.T('SWV parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
-            [collapse(SWV_parameters, '-SEC1-')],
-            [sg.Button('Start', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')],
-            [sg.Canvas(key='controls_cv')],
-            [sg.Canvas(size=(650, 30), key='-CANVAS-')],
-            [sg.Button('Exit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')]
+            [sg.Text(system_data.test_type, size=(40, 1), justification='left', font='Helvetica 20')],
+            [sg.T(SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-', text_color='white'), sg.T('Parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
+            [collapse(V_parameters, '-SEC1-')],
+            [sg.Canvas(key='-CANVAS-')],
+            [sg.Button('Back', size=(10, 1), font='Helvetica 14'), 
+             sg.pin(sg.Button('Start', size=(10, 1), font='Helvetica 14')),
+             sg.pin(sg.Button('Exit', size=(10, 1), font='Helvetica 14'))
+            ],
             ]
     return layout
 
@@ -139,69 +177,97 @@ def collapse(layout, key):
 
 #Opens usb selection window
 #returns pump port, pump baud rate, and potentiostat port.
-def com_window_process():
-    COM_select = com_window()
+def test_setting_process():
+    test_setting_select = test_settings_window()
     while True:
-        event, values = COM_select.read(timeout=10)
+        event, values = test_setting_select.read(timeout=10)
 
-        if event in ('Submit', None):
+        if event in ('Next', None):
             system_data.pump_com = values['-PumpPort-']
             system_data.pstat_com = values['-PStatPort-']
+            system_data.n_electrodes = values['-NElectrodes-']
+            system_data.test_type = values['-TestType-']
+            
+            system_data.syringe_diam = values['-SyringeDiam-']
             break
 
-    COM_select.close()
+    test_setting_select.close()
 
 def parameter_window_process():
     #value for tracking the state of the collapsable window being expanded or not.
     is_expanded = True
+    #boolean value allows for test to be changed.
+    new_parameters = True
     window, ax, fig_agg = control_windows()
+    data_folder = ""
 
     # Enter measurement parameters and start pumping
     while True:
         event, values = window.read(timeout=10)
         if event == sg.WIN_CLOSED or event == 'Exit':
+            new_parameters = False
             break
-
+        if event == 'Back':
+            new_parameters = True
+            window.close()
+            break
+            
         if event.startswith('-OPEN SEC1-'):
             is_expanded = not is_expanded
             window['-OPEN SEC1-'].update(SYMBOL_DOWN if is_expanded else SYMBOL_UP)
             window['-SEC1-'].update(visible=is_expanded)
 
-        if event in ('Start', None):
+        if event in ('Start', None) and system_data.test_type == 'Stop_Flow':
             print(event, values)
-            system_data.test_name = values[0]
-            system_data.flow_rate,system_data.syringe_diam, system_data.volume, system_data.n_measurements = float(values[1]), float(values[2]), float(values[3]), float(values[4])
-            system_data.e_cond, system_data.t_cond = float(values[5]), float(values[6])
-            system_data.e_dep = float(values[7])
-            system_data.t_equil = float(values[8])
-            system_data.e_begin, system_data.e_end, system_data.e_step = float(values[9]), float(values[10]), float(values[11])
-            system_data.amplitude, system_data.frequency = float(values[12]), float(values[13])
+            system_data.test_name = values['-TestName-']
+            system_data.n_measurements = values['-NMeasurements-']
+            system_data.step_volume = float(values['-StepVolume-'])/1000
+            system_data.flow_rate = values['-FlowRate-']
+            system_data.e_cond, system_data.t_cond = float(values['-E_cond-']), float(values['-T_cond-'])
+            system_data.e_dep = float(values['-E_dep-'])
+            system_data.t_equil = float(values['-T_equil-'])
+            system_data.e_begin, system_data.e_end, system_data.e_step = float(values['-E_begin-']), float(values['-E_end-']), float(values['-E_stop-'])
+            system_data.amplitude = float(values['-Amp-'])
+            system_data.frequencies =  [float(values['-Freq_1-']), float(values['-Freq_2-']), float(values['-Freq_3-'])]
+            system_data.t_dep = system_data.step_volume / (system_data.flow_rate*system_data.flowrate_conversion) #s/measurement
+            new_parameters = False
             break
 
-    path = os.getcwd() + '\data'
-    new_folder = system_data.test_name
-    data_folder = os.path.join(path, new_folder)
-    if not os.path.exists(data_folder):
-        os.makedirs(data_folder)
-        os.makedirs(os.path.join(data_folder, 'plots'))
-        os.makedirs(os.path.join(data_folder, 'csv'))
-    return window, ax, fig_agg, data_folder
+        if event in ('Start', None) and system_data.test_type == 'Chronoamperometry':
+            print(event, values)
+            system_data.test_name = values['-TestName-']
+            system_data.n_measurements = values['-NMeasurements-']
+            system_data.step_volume = float(values['-StepVolume-'])/1000
+            system_data.flow_rate = values['-FlowRate-']
+            system_data.t_equil = float(values['-T_equil-'])
+            system_data.e_dep = float(values['-E_dep-'])
+            system_data.t_dep = float(values['-T_dep-']) #s/measurement
+            new_parameters = False
+            break
+
+    if not new_parameters:
+        path = os.getcwd() + '\data'
+        new_folder = system_data.test_name
+        data_folder = os.path.join(path, new_folder)
+        if not os.path.exists(data_folder):
+            os.makedirs(data_folder)
+            os.makedirs(os.path.join(data_folder, 'plots'))
+            os.makedirs(os.path.join(data_folder, 'csv'))
+    return window, ax, fig_agg, data_folder, new_parameters
 
 def connect_to_pump():
     # connect to pump
     pump = Pump.from_parameters(system_data)
     #pump = Pump(system_data.["pump_com"], system_data.["pump_baud"])
-
     pump.set_diameter(system_data.syringe_diam) # Fixed syringe diameter
     pump.set_rate(system_data.flow_rate,'uL/min')
-    pump.set_volume(system_data.volume)
+    system_data.infusion_volume = system_data.step_volume*system_data.n_measurements
+    pump.set_volume(system_data.infusion_volume)
     pump.reset_acc() # reset accumulated volume to zero
     return pump
-def connect_to_pstat():
 
-   #need to compute deposition time from inputted values.
-    system_data.step_volume = system_data.volume / system_data.n_measurements
-    system_data.t_dep = system_data.step_volume / (system_data.flow_rate*system_data.flowrate_conversion) #s/measurement
+def connect_to_pstat():
+   
     #connect to emstat
     return Emstat.from_parameters(system_data)
     #return Emstat(system_data.["pstat_com"], system_data.["e_cond"], system_data.["t_cond"], system_data.["e_dep"], system_data.["t_dep"], system_data.["t_equil"], system_data.["e_begin"], system_data.["e_end"], system_data.["e_step"], system_data.["amplitude"], system_data.["frequency"])
@@ -216,7 +282,12 @@ def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
     # toggle flow on/off while measuring pstat
     while True:
         # start flow, deposit norfentynal
-
+        if system_data.test_type == 'Stop-Flow':
+            #TODO Fill in proper proto
+            continue #to delete
+        elif system_data.test_type == 'Chronoamperometry':
+            #TODO Fill in proper proto
+            continue #to delete
         pump.infuse()
         pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
         pump.stop()
@@ -273,9 +344,11 @@ def take_measurement(data_queue, pump, pstat):
 """
 def main():
     #Step 1: USB ports are selected by user input.
-    com_window_process()
+    new_parameters = True
+    while new_parameters == True:
+        test_setting_process()
     #Step 2: System Parameters are set by user input.
-    window, ax, fig_agg, data_folder = parameter_window_process()
+        window, ax, fig_agg, data_folder, new_parameters = parameter_window_process()
     #Step 3:
     pump = connect_to_pump()
     #Step 4:
@@ -287,6 +360,9 @@ def main():
     while True:
         event, values = window.read(timeout=10)
         if event == sg.WIN_CLOSED or event == 'Exit':
+            pump.stop()
+            pump.close()
+            pstat.close()
             break
 
 if __name__ == '__main__':
