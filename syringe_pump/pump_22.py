@@ -1,5 +1,5 @@
 """
-	Github Links: 
+	Github Links:
 		https://github.com/tomwphillips/pumpy/blob/master/pumpy.py
 		https://github.com/bgamari/harvard-syringe-pump/blob/master/harvardpump/pump.py
 
@@ -35,10 +35,11 @@ class Pump():
 			if self.ser.isOpen():
 				print("pump port opened successfully")
 		except:
+			print(ser)
 			print("COM port is not available")
 		self.ser.flushInput()
 		self.ser.flushOutput()
-	
+
 	@classmethod
 	def from_parameters(cls, system_data):
 		return cls(system_data.pump_com, system_data.pump_baud)
@@ -54,7 +55,7 @@ class Pump():
 		except KeyError:
 			raise PumpError
 
-	""" 
+	"""
 		Basic write operation to the pump.
 		cmd: string with the desired pump command. Must be
 			 a valid command from page 23 of the data sheet.
@@ -68,9 +69,9 @@ class Pump():
 
 		response = self.ser.read(3).decode("utf-8") # Isolate prompt from CR LF
 
-		return response.strip()	
+		return response.strip()
 
-	""" 
+	"""
 		Basic query operation to the pump.
 		cmd: string with the desired pump command. Must be
 			 a valid command from page 23 of the data sheet.
@@ -86,7 +87,7 @@ class Pump():
 		value = self.ser.read(10).decode("utf-8") # Isolate value from CR LF
 		prompt = self.ser.read(3).decode("utf-8") # Isolate prompt from CR LF
 
-		return value.strip(), prompt.strip()			
+		return value.strip(), prompt.strip()
 
 	# Start infusion
 	def infuse(self):
@@ -101,15 +102,15 @@ class Pump():
 	# Set the flow rate
 	def set_rate(self, rate, unit):
 
-		units = { 'uL/min' : 'ULM', 
-				  'mL/min' : 'MLM', 
-				  'uL/hr'  : 'ULH', 
+		units = { 'uL/min' : 'ULM',
+				  'mL/min' : 'MLM',
+				  'uL/hr'  : 'ULH',
 				  'mL/hr'  : 'MLH'}
 
 		try:
 			unit_code = units[unit]
 		except KeyError:
-			raise PumpError("Invalid unit")		
+			raise PumpError("Invalid unit")
 
 		response = self.write(units[unit] + str(rate))
 
@@ -117,6 +118,7 @@ class Pump():
 
 	# Set the syringe diameter
 	def set_diameter(self, diameter):
+		print(diameter)
 		response = self.write("MMD{}".format(diameter))
 		self.print_state(response)
 
@@ -130,7 +132,7 @@ class Pump():
 		response = self.write("CLV")
 		self.print_state(response)
 
-	# Query the pump for the current accumulated volume	
+	# Query the pump for the current accumulated volume
 	def check_volume(self):
 		value, prompt = self.query("VOL")
 		self.print_state(prompt)
