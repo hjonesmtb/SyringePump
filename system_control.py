@@ -47,11 +47,11 @@ def com_windows():
 
     #creates a list of the names of all current usb devices.
     usbs = list_ports.comports()
-    
+
     portName = []
     for usb in usbs:
         portName.append(usb.name)
-    
+
     layout = [
 			     [sg.Text('Pump Control', size=(40, 1),
 					justification='center', font='Helvetica 20')],
@@ -80,13 +80,12 @@ def com_windows():
 
 #boiler plate code for entering parameters
 def control_windows():
-    SWV_parameters = [[sg.Text('SWV Settings', size=(40, 1),
-            justification='center', font='Helvetica 20')],
+    SWV_parameters = voltammetry_gui_format()
+    layout = Test_GUI_Format(SWV_parameters)
+    window = sg.Window('Start Screen', layout, finalize=True, resizable=True)
+    axdep, axswv, fig_agg = Plot_GUI_Format(window)
 
-            [sg.Text('E condition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
-            [sg.Text('t condition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
-            [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('0.8')],
-            # [sg.Text('t deposition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('5')], #Deposition time depends on flowrate and volume/flush
+    return window, axdep, axswv, fig_agg
 
             [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText('0')],
             [sg.Text('E begin [V]', size=(15, 1), font='Helvetica 12'), sg.InputText('-0.4')],
@@ -109,8 +108,7 @@ def control_windows():
             [sg.Button('Start', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')],
 
             [sg.Canvas(key='controls_cv')],
-            [sg.Canvas(size=(650, 30), key='-CANVAS-')],
-
+            [sg.Canvas(size=(900, 500), key='-CANVAS-')],
             [sg.Button('Exit', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')]
             ]
 
@@ -122,11 +120,22 @@ def control_windows():
 
        # draw the initial plot in the window
     fig = plt.figure(1)
-    ax = fig.add_subplot(111)
-    ax.set_xlabel('Potential (V)')
-    ax.set_ylabel('Current (uA)')
+    axdep = fig.add_subplot(121)
+    axdep.set_xlabel('time(s)')
+    axdep.set_ylabel('Current (uA)')
 
+    axswv = fig.add_subplot(122)
+    axswv.set_xlabel('Potential (V)')
+    axswv.set_ylabel('Current (uA)')
     fig_agg = draw_figure(canvas, fig)
+
+    return axdep, axswv, fig_agg
+
+def draw_figure(canvas, figure, loc=(0, 0)):
+    figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
+    figure_canvas_agg.draw()
+    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
+    return figure_canvas_agg
 
     return window, ax, fig_agg
 
@@ -144,7 +153,10 @@ def main():
 
     COM_select.close()
 
-    window, ax, fig_agg = control_windows()
+def parameter_window_process():
+    #value for tracking the state of the collapsable window being expanded or not.
+    is_expanded = True
+    window, axdep, axswv, fig_agg = control_windows()
 
     # Measurement parameters
     flow_rate, volume = 0,0
@@ -181,6 +193,9 @@ def main():
         os.makedirs(data_folder)
         os.makedirs(os.path.join(data_folder, 'plots'))
         os.makedirs(os.path.join(data_folder, 'csv'))
+    return window, axdep, axswv, fig_agg, data_folder
+
+def connect_to_pump():
     # connect to pump
     pump = Pump(pump_com, pump_baud)
 
@@ -188,42 +203,62 @@ def main():
     pump.set_rate(flow_rate,'uL/min')
     pump.set_volume(volume)
     pump.reset_acc() # reset accumulated volume to zero
+    return pump
+def connect_to_pstat():
 
-    IV = [np.zeros(100), np.zeros(100)]
-    step_volume = volume / nmeasurements
-    t_dep = step_volume / (flow_rate / 1000 / 60)
-    # connect to emstat; the parameters could be a list or dictionary
-    pstat = Emstat(pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequency)
-    measurement = 0
+   #need to compute deposition time from inputted values.
+    system_data.step_volume = system_data.volume / system_data.n_measurements
+    system_data.t_dep = system_data.step_volume / (system_data.flow_rate*system_data.flowrate_conversion) #s/measurement
+    #connect to emstat
+    return Emstat.from_parameters(system_data)
+    #return Emstat(system_data.["pstat_com"], system_data.["e_cond"], system_data.["t_cond"], system_data.["e_dep"], system_data.["t_dep"], system_data.["t_equil"], system_data.["e_begin"], system_data.["e_end"], system_data.["e_step"], system_data.["amplitude"], system_data.["frequency"])
 
-	# toggle flow on/off while measuring pstat
-
+def conduct_measurements(pstat, pump, window, axdep, axswv, fig_agg, data_folder):
+    #data_queue = queue.Queue()
+    #thread = threading.Thread(target=take_measurement(data_queue, pump, pstat))
+    #thread.start()
+    # for measure in range(system_data.n_measurements):
+    #     data_queue.put(system_data)
+    #system_data.write_swv(np.zeros(100), np.zeros(100),np.zeros(100),np.zeros(100))
+    # toggle flow on/off while measuring pstat
     while True:
         # start flow, deposit norfentynal
-        pump.infuse()
-        pstat.deposition(t_dep) # this takes ~10-20 secs, during which GUI is bricked
-        #
-        # #stop flow, run SWV sweep
-        pump.stop()
-        IV = pstat.sweepSWV() # this takes ~10-20 secs, during which GUI is bricked
-        measurement += 1 #keeps track of measurement number
-        plt.figure(1)
-        ax.grid() # draw the grid
-        ax.plot(IV[0],IV[1]) #plot new pstat readings
 
-        df = pd.DataFrame({'Potential':IV[0], 'Current':IV[1]})
-        df.to_csv(data_folder + '/csv/' + str(measurement) + '.csv')
-        ax.set_xlabel('Potential (V)')
-        ax.set_ylabel('Current (uA)')
+        # pump.infuse()
+        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
+        plt.figure(1)
+        axdep.grid() # draw the grid
+        axdep.plot(system_data.time_log,system_data.current_dep) #plot new pstat readings
+
+        # pump.stop()
+        pstat.sweepSWV()
+        system_data.measurements += 1
+
+        axswv.grid() # draw the grid
+        axswv.plot(system_data.potential_swv,system_data.current_swv) #plot new pstat readings
+
+        df = pd.DataFrame({'Potential':system_data.potential_swv, 'Current':system_data.current_swv})
+        df.to_csv(data_folder + '/csv/' + 'swv' + str(system_data.measurements) + '.csv')
+
+        # df = pd.DataFrame({'Potential':system_data.potential_dep, 'Current':system_data.current_dep})
+        # df.to_csv(data_folder + '/csv/' + 'dep' + str(system_data.measurements) + '.csv')
+
+        axswv.set_xlabel('Potential (V)')
+        axswv.set_ylabel('Current (uA)')
         fig_agg.draw()
         fig2 = plt.figure(2)
         plt.clf()
         plt.plot(IV[0],IV[1])
         plt.xlabel('Potential (V)')
         plt.ylabel('Current (uA)')
-        plt.savefig(data_folder + '/plots/' + str(measurement) + '.png')
+        plt.savefig(data_folder + '/plots/' + str(system_data.measurements) + '.png')
+        # plt.clf()
+        # plt.plot(system_data.potential_dep,system_data.current_dep)
+        # plt.xlabel('Potential (V)')
+        # plt.ylabel('Current (uA)')
+        # plt.savefig(data_folder + '/plots/dep/' + str(system_data.measurements) + '.png')
 
-        window.read(10)
+        window.read(20)
 
         # Stop program when we've completed all measurements
         if measurement >= nmeasurements:
@@ -233,9 +268,48 @@ def main():
             break
 
 
-    while True: #Keeps window open until closed
+def take_measurement(data_queue, pump, pstat):
+    while True:
+        data = data_queue.get()
+        #do something
+        pump.infuse()
+        pstat.deposition(data.t_dep)
+        pump.stop()
+        data.write_IV(pstat.sweepSWV())
+        data.measurements += 1
+        data_queue.task_done()
+
+"""Main process for GUI windows. Process occurs in the following steps:
+
+1). The USB port selection window appears allowing the user to select the correct usb connections
+    for the potentiostat and the syringe pump.
+2). The parameter setting window appears allowing for a test to be named
+    and measurement parameters to be selected.
+3). The syringe pump is connected via serial.
+4). The potentiostat is connected via serial.
+5). The square wave voltametry is conducted and data is saved to csv file.
+
+"""
+def main():
+    #Step 1: USB ports are selected by user input.
+    com_window_process()
+    #Step 2: System Parameters are set by user input.
+    window, axdep, axswv, fig_agg, data_folder = parameter_window_process()
+    #Step 3:
+    pump = connect_to_pump()
+    #Step 4:
+    pstat = connect_to_pstat()
+    #Step 5:
+    conduct_measurements(pstat, pump, window, axdep, axswv, fig_agg, data_folder)
+
+
+   #Keeps measurement window open until closed
+    while True:
         event, values = window.read(timeout=10)
         if event == sg.WIN_CLOSED or event == 'Exit':
+            pstat.close()
+            pump.stop()
+            pump.close()
             break
 
 if __name__ == '__main__':

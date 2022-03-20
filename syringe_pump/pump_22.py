@@ -1,5 +1,5 @@
 """
-	Github Links: 
+	Github Links:
 		https://github.com/tomwphillips/pumpy/blob/master/pumpy.py
 		https://github.com/bgamari/harvard-syringe-pump/blob/master/harvardpump/pump.py
 
@@ -30,12 +30,16 @@ class Pump():
 
 	def __init__(self, ser, baudrate):
 		#self.port = serial.Serial(port = 'COM{}', stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
-		try:
-			self.ser = serial.Serial(port = ser, stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 2)
-			if self.ser.inWaiting():
-				print("port opened successfully")
-		except:
-			print("COM port is not available")
+		pump_connected = False
+		# while not pump_connected:
+		# try:
+		self.ser = serial.Serial(port = ser, stopbits = 2, baudrate = baudrate, parity = 'N', timeout = 200)
+		if self.ser.isOpen():
+			print("pump port opened successfully")
+		pump_connected = True
+		# except:
+		# 	print(ser)
+		# 	print("COM port is not available")
 		self.ser.flushInput()
 		self.ser.flushOutput()
 
@@ -50,7 +54,7 @@ class Pump():
 		except KeyError:
 			raise PumpError
 
-	""" 
+	"""
 		Basic write operation to the pump.
 		cmd: string with the desired pump command. Must be
 			 a valid command from page 23 of the data sheet.
@@ -64,9 +68,9 @@ class Pump():
 
 		response = self.ser.read(3).decode("utf-8") # Isolate prompt from CR LF
 
-		return response.strip()	
+		return response.strip()
 
-	""" 
+	"""
 		Basic query operation to the pump.
 		cmd: string with the desired pump command. Must be
 			 a valid command from page 23 of the data sheet.
@@ -82,7 +86,7 @@ class Pump():
 		value = self.ser.read(10).decode("utf-8") # Isolate value from CR LF
 		prompt = self.ser.read(3).decode("utf-8") # Isolate prompt from CR LF
 
-		return value.strip(), prompt.strip()			
+		return value.strip(), prompt.strip()
 
 	# Start infusion
 	def infuse(self):
@@ -97,15 +101,15 @@ class Pump():
 	# Set the flow rate
 	def set_rate(self, rate, unit):
 
-		units = { 'uL/min' : 'ULM', 
-				  'mL/min' : 'MLM', 
-				  'uL/hr'  : 'ULH', 
+		units = { 'uL/min' : 'ULM',
+				  'mL/min' : 'MLM',
+				  'uL/hr'  : 'ULH',
 				  'mL/hr'  : 'MLH'}
 
 		try:
 			unit_code = units[unit]
 		except KeyError:
-			raise PumpError("Invalid unit")		
+			raise PumpError("Invalid unit")
 
 		response = self.write(units[unit] + str(rate))
 
@@ -126,7 +130,7 @@ class Pump():
 		response = self.write("CLV")
 		self.print_state(response)
 
-	# Query the pump for the current accumulated volume	
+	# Query the pump for the current accumulated volume
 	def check_volume(self):
 		value, prompt = self.query("VOL")
 		self.print_state(prompt)
