@@ -37,6 +37,8 @@ SYMBOL_DOWN =  '▼'
 #System_Data class is initialized with default values.
 #This class will hold the data read from the potentiostat for generating plots and saving to a .csv
 system_data = System_Data()
+#can be loaded from a custom config file.
+#system_data = System_Data.load_system_data_from_json("pathtoconfig/config.json")
 """
     Helper function that creates a Column that can be later made hidden, thus appearing "collapsed"
     :param layout: The layout for the section
@@ -95,8 +97,9 @@ def voltammetry_gui_format():
         layout = chronoamp_format()
     if(system_data.test_type == 'Cyclic Voltametry'):
         layout = cyclic_format()
-    else:
-        print("Failed to pick test name")
+    if(system_data.test_type == 'Pump'):
+        layout = pump_format()
+       #print("Failed to pick test name")
     return layout
    
 
@@ -123,6 +126,10 @@ def swv_format():
     return swv_parameters
 
 def cyclic_format():
+    print("Not supported")
+    return []
+
+def pump_format():
     print("Not supported")
     return []
 
@@ -187,7 +194,7 @@ def test_setting_process():
             system_data.pstat_com = values['-PStatPort-']
             system_data.n_electrodes = values['-NElectrodes-']
             system_data.test_type = values['-TestType-']
-            
+            system_data.update_test_name()
             system_data.syringe_diam = values['-SyringeDiam-']
             break
 
