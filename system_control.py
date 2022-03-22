@@ -130,8 +130,13 @@ def cyclic_format():
     return []
 
 def pump_format():
-    print("Not supported")
-    return []
+    pump_parameters = [
+            [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
+           
+            [sg.Text('Time [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(120, key='-T_dep-')],
+            ]
+    return pump_parameters
+    
 
 def chronoamp_format():
     chrono_parameters = [
@@ -287,14 +292,21 @@ def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
     #     data_queue.put(system_data)
     #system_data.write_swv(np.zeros(100), np.zeros(100),np.zeros(100),np.zeros(100))
     # toggle flow on/off while measuring pstat
+
+    if system_data.test_type == 'Stop-Flow':
+            #TODO Fill in proper proto 
+        stop_flow_measurements(pstat, pump, window, ax, fig_agg, data_folder)     
+    elif system_data.test_type == 'Cyclic Voltametry':
+        cyclic_measurements(pstat, pump, window, ax, fig_agg, data_folder)
+
+    elif system_data.test_type == 'Pump':
+        pump_fluid(pump, window)
+    elif system_data.test_type == 'Chronoamperometry':
+        chrono_measurements(pstat, pump, window, ax, fig_agg, data_folder)
+             
+
     while True:
         # start flow, deposit norfentynal
-        if system_data.test_type == 'Stop-Flow':
-            #TODO Fill in proper proto
-            continue #to delete
-        elif system_data.test_type == 'Chronoamperometry':
-            #TODO Fill in proper proto
-            continue #to delete
         pump.infuse()
         pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
         pump.stop()
