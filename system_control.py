@@ -215,13 +215,13 @@ def conduct_measurements(pstat, pump, window, axswv, axdep, fig_agg, data_folder
     # toggle flow on/off while measuring pstat
     while True:
         # start flow, deposit norfentynal
-        # pump.infuse()
+        pump.infuse()
         pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
         plt.figure(1)
         axdep.grid() # draw the grid
         axdep.plot(system_data.time_log,system_data.current_dep) #plot new pstat readings
 
-        # pump.stop()
+        pump.stop()
         pstat.sweepSWV()
         system_data.measurements += 1
 
@@ -253,8 +253,8 @@ def conduct_measurements(pstat, pump, window, axswv, axdep, fig_agg, data_folder
         # Stop program when we've completed all measurements
         if system_data.measurements >= system_data.n_measurements:
             #thread.join()
-            # pump.stop()
-            # pump.close()
+            pump.stop()
+            pump.close()
             pstat.close()
             break
 
@@ -284,8 +284,8 @@ def main():
     #Step 2: System Parameters are set by user input.
     window, axswv, axdep, fig_agg, data_folder = parameter_window_process()
     #Step 3:
-    # pump = connect_to_pump()
-    pump = True
+    pump = connect_to_pump()
+    # pump = True
     #Step 4:
     pstat = connect_to_pstat()
     #Step 5:
