@@ -10,8 +10,8 @@ from system_data import System_Data
 
 #User inputs
 technique = 2 #square wave voltammetry
-cr_min = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 10uA, 6: 1mA, 7: 10mA, user input
-cr_max = 7 # max current range, user input
+cr_min = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 100uA, 6: 1mA, 7: 10mA, user input
+cr_max = 5 # max current range, user input
 cr = 3 #Starting current range, user input
 measure_i_forward_reverse = True #user input
 cell_on_post_measure = False #user input
@@ -167,7 +167,7 @@ class Emstat:
                 underload_dep.append(current_underload)
                 time_log.append(time.time()-starttime)
                 print(potential, current)
-                self.system_data.write_dep(potential_dep, current_dep, overload_dep, underload_dep)
+                self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
         return
 
     '''Sends a key(c or L) to the emstat, waits until the key is returned to make sure
@@ -271,7 +271,7 @@ class Emstat:
                     n += 1
 
             if not skip_T:
-                while char != 'U': #Write T packages as long as no U is read
+                while char != 'U': #Write T poackages as long as no U is read
                     package = ''
                     char = self.readData(1).decode()
                     while char != "T" and char != "M" and char != "U": #M is the present at the end of the last T-package
@@ -325,8 +325,8 @@ class Emstat:
         Econd = self.potential_to_cmd(e_cond)
         Edep = self.potential_to_cmd(0)
         Ebegin = self.potential_to_cmd(e_begin)
-        Estep = int(e_step * 10000) #not sure why
-        Epulse = int(amplitude * 10000) #not sure why
+        Estep = int(e_step * 10000) 
+        Epulse = int(amplitude * 10000)
         #tInt
         tInt = self.tint_calc(freq)
         #format ascii command
