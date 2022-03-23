@@ -82,12 +82,10 @@ def test_settings_gui_format(usbs, port_name):
 
 #boiler plate code for entering parameters
 def control_windows():
-
     layout = parameters_Format()
     window = sg.Window('Start Screen', layout, finalize=True, resizable=True)
-    window.maximize()
     fig_agg = Plot_GUI_Format(window)
-
+    window.Maximize()
     return window, fig_agg
 
 def voltammetry_gui_format():
