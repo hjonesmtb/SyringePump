@@ -305,7 +305,22 @@ def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
         chrono_measurements(pstat, pump, window, ax, fig_agg, data_folder)
              
 
-    while True:
+def cyclic_measurements(pstat, pump, window, ax, fig_agg, data_folder):
+        pump.infuse()
+        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
+        pump.stop()
+        return
+
+def pump_fluid(pump, window):
+        pump.infuse()
+        pump.stop()
+        return
+
+def chrono_measurements(pstat, pump, window, ax, fig_agg, data_folder):
+        return
+        
+def stop_flow_measurements(pstat, pump, window, ax, fig_agg, data_folder):
+      while True:
         # start flow, deposit norfentynal
         pump.infuse()
         pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
@@ -338,7 +353,7 @@ def conduct_measurements(pstat, pump, window, ax, fig_agg, data_folder):
             pstat.close()
             break
 
-
+#threded function attempt
 def take_measurement(data_queue, pump, pstat):
     while True:
         data = data_queue.get()
