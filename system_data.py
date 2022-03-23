@@ -27,11 +27,13 @@ N_MEASUREMENTS = 10
 N_ELECTRODES = 1
 T_DEPOSITION = INFUSION_VOLUME / N_MEASUREMENTS / (FLOW_RATE * FLOWRATE_CONVERSION)
 STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
+FIGSIZE = (20,6)
 
 
 class System_Data:
     def __init__(self, data_dict = None):
         #loads default values
+        self.initial_pump_time = 240 #initial pumping time
         if data_dict == None:
             print("No JSON file found, loading in default values...")
             # measurment data
@@ -71,6 +73,12 @@ class System_Data:
             self.flowrate_conversion = FLOWRATE_CONVERSION
             self.n_electrodes = N_ELECTRODES
             self.measurements = 0
+            #plot axes
+            self.figsize = FIGSIZE
+            # self.ax_dep = []
+            # self.ax_swv = []
+            # self.ax_cyclic = []
+            # self.ax_chrono = []
         #loads config files
         else:
             # measurment data
@@ -113,6 +121,12 @@ class System_Data:
             self.flowrate_conversion = FLOWRATE_CONVERSION
             self.n_electrodes = data_dict["n_electrodes"]
             self.measurements = 0
+            #plot axes
+            self.figsize = FIGSIZE
+            # self.ax_dep = []
+            # self.ax_swv = []
+            # self.ax_cyclic = []
+            # self.ax_chrono = []
             return
 
     def write_swv(self, pot, cur, over, under):
@@ -165,7 +179,7 @@ class System_Data:
         else:
             type_name = self.__class__.__name__
             raise TypeError(f"Object of type '{type_name}' is not JSON serializable")
-    
+
     def decode_system_config(data_dict):
         if "__System_Data__" in data_dict:
             return System_Data(data_dict)
@@ -182,5 +196,3 @@ class System_Data:
 
     def update_test_name(self):
         self.test_name = self.test_type + "_" + datetime.now().strftime("%y-%m-%d_%H%M")
-
-    
