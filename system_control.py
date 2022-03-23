@@ -76,7 +76,7 @@ def test_settings_gui_format(usbs, port_name):
             [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, size=(20,1),key=("-PStatPort-"))],
             [sg.Text('List of Detected Ports', size=(20, 1), font='Helvetica 12'), sg.Listbox(usbs, size=(20, len(usbs)), key=("-usbs-"))],
             [sg.Canvas(key='-controls_cv-')],
-            [sg.Button('Next', size=(10, 1), pad=((280, 0), 3), font='Helvetica 14')],
+            [sg.Button('Next', size=(15, 1), pad=((280, 0), 3), font='Helvetica 14')],
             ]
     return layout
 
@@ -151,23 +151,26 @@ def chronoamp_format():
 def parameters_Format():
     V_parameters = voltammetry_gui_format()
     col1 =[
-            [sg.Text(system_data.test_type, size=(40, 1), justification='left', font='Helvetica 20')],
+            [sg.Text(system_data.test_type, size=(20, 1), justification='left', font='Helvetica 20')],
             [sg.T(SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-', text_color='white'), sg.T('Parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
             [collapse(V_parameters, '-SEC1-')],
-            [sg.Button('Back', size=(10, 1), font='Helvetica 14'),
-             sg.pin(sg.Button('Start', size=(10, 1), font='Helvetica 14')),
-             sg.pin(sg.Button('Exit', size=(10, 1), font='Helvetica 14'))
+            [sg.Button('Back', size=(15, 1), font='Helvetica 14'),
+             sg.pin(sg.Button('Start', size=(15, 1), font='Helvetica 14')),
+             sg.pin(sg.Button('Exit', size=(15, 1), font='Helvetica 14'))],
+            [sg.Text(key='-TEST_STATUS-', size=(30, 1), font='Helvetica 20')
             ],
             ]
     col2 =[
-            [sg.Canvas(key='-CANVAS-')
+            [sg.Canvas(key='-PLOT-')],
+            [sg.Text(key='-MEASUREMENT-', size=(30, 1), font='Helvetica 20')],
+            [sg.Text(key='-TIME-', size=(30, 1), font='Helvetica 20')
             ],
             ]
     layout = [[sg.Column(col1, element_justification='l' ), sg.Column(col2, element_justification='c')]]
     return layout
 
 def Plot_GUI_Format(window):
-    canvas_elem = window['-CANVAS-']
+    canvas_elem = window['-PLOT-']
     canvas = canvas_elem.TKCanvas
 
     if system_data.test_type == 'Stop-Flow':
@@ -177,10 +180,12 @@ def Plot_GUI_Format(window):
         ax_dep = fig.add_subplot(121)
         ax_dep.set_xlabel('time(s)')
         ax_dep.set_ylabel('Current (uA)')
+        ax_dep.set_title('Deposition Current')
 
         ax_swv = fig.add_subplot(122)
         ax_swv.set_xlabel('Potential (V)')
         ax_swv.set_ylabel('Current (uA)')
+        ax_swv.set_title('Squarewave Current')
         fig_agg = draw_figure(canvas, fig)
 
         system_data.ax_swv = ax_swv
@@ -203,7 +208,7 @@ def Plot_GUI_Format(window):
 
     if system_data.test_type == 'Cyclic Voltammetry':
         #draw the initial plot in the window
-        fig = plt.figure(1, figsize = system_data.figsize)
+        fig = plt.figure(1, figsize = sstem_data.figsize)
         fig.clf()
         ax_cyclic = fig.add_subplot(111)
         ax_swv.set_xlabel('Potential (V)')
@@ -260,6 +265,8 @@ def parameter_window_process():
             new_parameters = True
             window.close()
             break
+
+        window['-TEST_STATUS-'].update('Press Start to Start Pumping')
 
         if event.startswith('-OPEN SEC1-'):
             is_expanded = not is_expanded
@@ -350,11 +357,10 @@ def stop_flow_measurements(pstat, pump, window, fig_agg, data_folder):
     # Cyclic, threaded
     # Repeat
 
-
-
     pump.infuse()
     #thread this
-    pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
+    pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1])
+
 
     pump.stop()
     pstat.sweepSWV()
