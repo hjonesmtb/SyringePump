@@ -6,13 +6,15 @@ import pandas as pd
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, FigureCanvasAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 SYRINGE_DIAM = 20  # mm
 FLOWRATE_CONVERSION = 1 / 1000 / 60  # 1mL/1000uL*1min/60seconds
 
 # default values
 
-TEST_TYPES = ["Stop-Flow", "Chronoamperometry", "Cyclic Voltametry", "Pump"]
+TEST_TYPES = ["Stop-Flow", "Chronoamperometry", "Cyclic Voltametry"]
 DATE = datetime.now().strftime("%y-%m-%d_%H%M")
 TEST_NAME = TEST_TYPES[0]+ "_" + DATE
 PUMP_BAUD = 1200
@@ -42,27 +44,40 @@ class System_Data:
         #loads default values
         self.initial_pump_time = 240 #initial pumping time
         self.start_time = 0
-        #creates directory for system data
+
+        # measurment data
+        self.current_swv = []
+        self.potential_swv = []
+        self.overload_swv = []
+        self.underload_swv = []
+        self.current_dep = []
+        self.potential_dep = []
+        self.overload_dep = []
+        self.underload_dep = []
+        self.noise = []
+        self.time = []
+        self.measurements = 0
+        # test type
+        self.test_types = TEST_TYPES
+        # communication
+        self.pump_com = PUMP_COM
+        self.pump_baud = PUMP_BAUD
+        self.pstat_com = PSTAT_COM
+        self.flowrate_conversion = FLOWRATE_CONVERSION
+
+        #plot axes
+        self.figsize = FIGSIZE
+        self.ax_dep = []
+        self.ax_swv = []
+        self.ax_cyclic = []
+        self.ax_chrono = []
+        
+        
         if data_dict == None:
             print("No JSON file found, loading in default values...")
-            # measurment data
-            self.current_swv = []
-            self.potential_swv = []
-            self.overload_swv = []
-            self.underload_swv = []
-            self.current_dep = []
-            self.potential_dep = []
-            self.overload_dep = []
-            self.underload_dep = []
-            self.noise = []
-            self.time = []
-            # test types
-            self.test_types = TEST_TYPES
+            # test type
             self.test_type = self.test_types[0]
             # system parameters
-            self.pump_com = PUMP_COM
-            self.pump_baud = PUMP_BAUD
-            self.pstat_com = PSTAT_COM
             self.test_name = TEST_NAME
             self.flow_rate = FLOW_RATE
             self.infusion_volume = INFUSION_VOLUME
@@ -79,38 +94,12 @@ class System_Data:
             self.n_measurements = N_MEASUREMENTS
             self.step_volume = STEP_VOLUME
             self.syringe_diam = SYRINGE_DIAM
-            self.flowrate_conversion = FLOWRATE_CONVERSION
             self.n_electrodes = N_ELECTRODES
-            self.measurements = 0
-            #plot axes
-            self.figsize = FIGSIZE
-            self.ax_dep = []
-            self.ax_swv = []
-            self.ax_cyclic = []
-            self.ax_chrono = []
         #loads config files
         else:
-            # measurment data
-            self.current_swv = []
-            self.potential_swv = []
-            self.overload_swv = []
-            self.underload_swv = []
-            self.current_dep = []
-            self.potential_dep = []
-            self.overload_dep = []
-            self.underload_dep = []
-            self.noise = []
-            self.time = []
             # test types
-            self.test_types = []
-            self.test_types.append("Stop-Flow")
-            self.test_types.append("Chronoamperometry")
-            self.test_types.append("Cyclic Voltametry")
             self.test_type = data_dict["test_type"]
             # system parameters
-            self.pump_com = PUMP_COM
-            self.pump_baud = PUMP_BAUD
-            self.pstat_com = PSTAT_COM
             self.test_name = data_dict["test_name"]
             self.flow_rate = data_dict["flow_rate"]
             self.infusion_volume = data_dict["infusion_volume"]
@@ -127,16 +116,8 @@ class System_Data:
             self.n_measurements = data_dict["n_measurements"]
             self.step_volume = data_dict["step_volume"]
             self.syringe_diam = data_dict["syringe_diam"]
-            self.flowrate_conversion = FLOWRATE_CONVERSION
             self.n_electrodes = data_dict["n_electrodes"]
-            self.measurements = 0
-            #plot axes
-            self.figsize = FIGSIZE
-            self.ax_dep = []
-            self.ax_swv = []
-            self.ax_cyclic = []
-            self.ax_chrono = []
-
+            
         self.path = PATH + '\data'
         #fix naming of folder
         self.data_folder = os.path.join(self.path, self.test_name)
@@ -221,18 +202,18 @@ class System_Data:
         return system_data
 
     def plot_data(self):
+        cmap = cm.get_cmap('color', int(10))
+        colour = cmap(self.measurements % self.n_measurements / 10)
         if self.test_type == 'Stop-Flow':
-            self.ax_dep.plot(self.potential_dep,self.time)
-            self.ax_swv.plot(self.potential_swv,self.current_swv)
+            self.ax_dep.plot(self.potential_dep,self.time, color = colour)
+            self.ax_swv.plot(self.potential_swv,self.current_swv, color = colour)
             self.fig_agg.draw()
         elif self.test_type == 'Cyclic voltammetry':
-            self.ax_cyclic.plot(self.potential_dep,self.current_dep)
+            self.ax_cyclic.plot(self.potential_dep,self.current_dep, color = colour)
             self.fig_agg.draw()
             return
-        elif self.test_type == 'Pump':
-            return
         elif self.test_type == 'Chronoamperometry':
-            self.ax_chrono.plot(self.potential_dep,self.time)
+            self.ax_chrono.plot(self.potential_dep,self.time, color = colour)
             self.fig_agg.draw()
 
         return
@@ -280,6 +261,8 @@ class System_Data:
             self.ax_cyclic = fig.add_subplot(111)
             self.ax_cyclic.set_xlabel('Potential (V)')
             self.ax_cyclic.set_ylabel('Current (uA)')
+        else:
+            return
         self.plot = fig
         self.draw_figure(canvas, fig)
 
