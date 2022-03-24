@@ -136,7 +136,7 @@ class Emstat:
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
-                print(package)
+                #print(package)
                 if len(package) != 8*n_channels: #Check to make sure packages are the right length
                     raise ValueError('P package not 8*n_channels characters')
                 P_data.append(package)
@@ -166,7 +166,7 @@ class Emstat:
                 overload_dep.append(current_overload)
                 underload_dep.append(current_underload)
                 time_log.append(time.time()-starttime)
-                print(potential, current)
+                #print(potential, current)
                 self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
         return
 
@@ -176,7 +176,7 @@ class Emstat:
         count = 0
         self.sendData(key)
         char = self.readData(1).decode()
-        print(char)
+        #print(char)
         while char != key:
             char = self.readData(1).decode()
             count += 1
@@ -198,15 +198,15 @@ class Emstat:
         for data in T_data:
             current_overload = False
             current_underload = False
-            print(T_data[2:4])
+            #print(T_data[2:4])
             potential = ((int(data[2:4], 16) * 256 + int(data[0:2], 16)) / 65536 * 4.096 - 2.048) * e_factor
             current_range = 10 ** int(int(data[10:12], 16) & int('0F', 16))
             if (int(data[10:12], 16) & int('20', 16) == int('20', 16)):
                 current_overload = True
-                print("current overload")
+                #print("current overload")
             if (int(data[10:12], 16) & int('40', 16) == int('40', 16)):
                 current_underload = True
-                print("current underload")
+                #print("current underload")
             current = ((int(data[6:8], 16) * 256 + int(data[4:6], 16)) / 65536 * 4.096 - 2.048) * current_range / 10**(3)
             noise = (int(data[16:18], 16) * 256 + int(data[18:20], 16)) / 65536 * 4.096
             potential_array.append(potential)
@@ -228,10 +228,10 @@ class Emstat:
             current = current - 4.096 * current
         if (int(U_data[10:12], 16) & int('20', 16) == int('20', 16)):
             current_overload = True
-            print("current overload")
+            #print("current overload")
         if (int(U_data[10:12], 16) & int('40', 16) == int('40', 16)):
             current_underload = True
-            print("current underload")
+            #print("current underload")
         return potential, current, current_overload, current_underload
 
     def process_P(self, P_data):
@@ -259,7 +259,7 @@ class Emstat:
             n = 0
             while True:
                 char = self.readData(1).decode()
-                print(char)
+                #print(char)
                 if n > 200:
                     raise ValueError('Reading wrong, no T found in first 20 characters')
                 if char == "T":
@@ -280,7 +280,7 @@ class Emstat:
                         char = self.readData(1).decode()
                     if char == "M": #read another character if M received, should be a U
                         char = self.readData(1).decode()
-                    print(package)
+                    #print(package)
                     if len(package) != 20:
                         raise ValueError('T package not 20 characters')
                     T_data.append(package)
@@ -300,7 +300,7 @@ class Emstat:
                 current_swv.append(current)
                 overload_swv.append(current_overload)
                 underload_swv.append(current_underload)
-                print("swv", potential, current)
+                #print("swv", potential, current)
                 self.system_data.write_swv(potential_swv, current_swv, overload_swv, underload_swv)
             print("measurement complete")
         except Exception as e:
@@ -335,7 +335,7 @@ class Emstat:
         {}\ntInt={}\ntPulse={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
         (technique, e_cond, t_cond, 0, 0, t_equil, cr_min, cr_max, cr, Ebegin, \
         Estep, Epulse, nPoints, tInt, tPulse, d1, d16, options, nadmean))
-        print(L_command)
+        #print(L_command)
         return L_command
 
     #Calculates d1, d16 and nadmean from tmeas. See p. 24 of comm protocol

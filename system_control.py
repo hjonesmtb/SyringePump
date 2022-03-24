@@ -25,8 +25,8 @@ import threading, queue
 from syringe_pump.pump_22 import Pump
 from emstat.emstat_communication import Emstat
 from system_data import System_Data
-
-
+from matplotlib import cm
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 SYMBOL_UP =    '▲'
 SYMBOL_DOWN =  '▼'
 
@@ -213,42 +213,53 @@ def conduct_measurements(pstat, pump, window, axswv, axdep, fig_agg, data_folder
     #     data_queue.put(system_data)
     #system_data.write_swv(np.zeros(100), np.zeros(100),np.zeros(100),np.zeros(100))
     # toggle flow on/off while measuring pstat
+    
+    first = True
+    axdep.grid() # draw the grid
+    axswv.grid() # draw the grid
+    
     while True:
         # start flow, deposit norfentynal
-        pump.infuse()
-        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
-        plt.figure(1)
-        axdep.grid() # draw the grid
-        axdep.plot(system_data.time_log,system_data.current_dep) #plot new pstat readings
+        
+        event, values = window.read(10)
+        
+        print(event, system_data.measurements)
+                
+        if(event == '-OPERATION DONE-' or first):
+            first = False
+            window.perform_long_operation(lambda :
+                                          take_measurement(pump, pstat),
+                                          '-OPERATION DONE-')
+             
+            cmap = cm.get_cmap('rainbow', int(system_data.n_measurements))       
+            colours = cmap(system_data.measurements / system_data.n_measurements)
+            
+            df = pd.DataFrame({'Potential':system_data.potential_swv, 'Current':system_data.current_swv})
+            df.to_csv(data_folder + '/csv/' + 'swv' + str(system_data.measurements) + '.csv')
+    
+            fig2 = plt.figure(2)
+            plt.clf()
+            plt.plot(system_data.potential_swv,system_data.current_swv)
+            plt.xlabel('Potential (V)')
+            plt.ylabel('Current (uA)')
+            plt.savefig(data_folder + '/plots/' + str(system_data.measurements) + '.png')
+        
+            system_data.measurements += 1
 
-        pump.stop()
-        pstat.sweepSWV()
-        system_data.measurements += 1
-
-        axswv.grid() # draw the grid
-        axswv.plot(system_data.potential_swv,system_data.current_swv) #plot new pstat readings
-
-        df = pd.DataFrame({'Potential':system_data.potential_swv, 'Current':system_data.current_swv})
-        df.to_csv(data_folder + '/csv/' + 'swv' + str(system_data.measurements) + '.csv')
-
-        # df = pd.DataFrame({'Potential':system_data.potential_dep, 'Current':system_data.current_dep})
-        # df.to_csv(data_folder + '/csv/' + 'dep' + str(system_data.measurements) + '.csv')
+        #plt.figure(1)
+             
+        axdep.plot(system_data.time_log,system_data.current_dep, color = colours) #plot new pstat readings  
+        axswv.plot(system_data.potential_swv,system_data.current_swv, color = colours) #plot new pstat readings
 
         axswv.set_xlabel('Potential (V)')
         axswv.set_ylabel('Current (uA)')
         fig_agg.draw()
-        fig2 = plt.figure(2)
-        plt.clf()
-        plt.plot(system_data.potential_swv,system_data.current_swv)
-        plt.xlabel('Potential (V)')
-        plt.ylabel('Current (uA)')
-        plt.savefig(data_folder + '/plots/' + str(system_data.measurements) + '.png')
+        
         # plt.clf()
         # plt.plot(system_data.potential_dep,system_data.current_dep)
         # plt.xlabel('Potential (V)')
         # plt.ylabel('Current (uA)')
         # plt.savefig(data_folder + '/plots/dep/' + str(system_data.measurements) + '.png')
-        window.read(20)
 
         # Stop program when we've completed all measurements
         if system_data.measurements >= system_data.n_measurements:
@@ -258,16 +269,12 @@ def conduct_measurements(pstat, pump, window, axswv, axdep, fig_agg, data_folder
             pstat.close()
             break
 
-def take_measurement(data_queue, pump, pstat):
-    while True:
-        data = data_queue.get()
-        #do something
-        pump.infuse()
-        pstat.deposition(data.t_dep)
-        pump.stop()
-        data.write_IV(pstat.sweepSWV())
-        data.measurements += 1
-        data_queue.task_done()
+# threaded function
+def take_measurement(pump, pstat):
+    pump.infuse()
+    pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
+    pump.stop()
+    pstat.sweepSWV()
 
 """Main process for GUI windows. Process occurs in the following steps:
 1). The USB port selection window appears allowing the user to select the correct usb connections
