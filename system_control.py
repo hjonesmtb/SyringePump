@@ -85,6 +85,7 @@ def control_windows():
     layout = parameters_Format()
     window = sg.Window('Start Screen', layout, finalize=True, resizable=True)
     system_data.Initialize_Plots(window)
+    # system_data.plot_data()
     window.Maximize()
     return window
 
@@ -131,7 +132,6 @@ def cyclic_format():
 def pump_format():
     pump_parameters = [
             [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
-
             [sg.Text('Time [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(120, key='-T_dep-')],
             ]
     return pump_parameters
@@ -141,7 +141,6 @@ def chronoamp_format():
     chrono_parameters = [
             [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name, key=('-TestName-'))],
             [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
-
             [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_dep, key='-E_dep-')],
             [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_equil, key='-T_equil-')],
             [sg.Text('t deposition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_dep, key='-T_dep-')],
@@ -223,9 +222,9 @@ def parameter_window_process():
             if system_data.test_type == 'Stop-Flow':
                 print(event, values)
                 system_data.test_name = values['-TestName-']
-                system_data.n_measurements = values['-NMeasurements-']
+                system_data.n_measurements = float(values['-NMeasurements-'])
                 system_data.step_volume = float(values['-StepVolume-'])/1000
-                system_data.flow_rate = values['-FlowRate-']
+                system_data.flow_rate = float(values['-FlowRate-'])
                 system_data.e_cond, system_data.t_cond = float(values['-E_cond-']), float(values['-T_cond-'])
                 system_data.e_dep = float(values['-E_dep-'])
                 system_data.t_equil = float(values['-T_equil-'])
@@ -239,8 +238,6 @@ def parameter_window_process():
             if system_data.test_type == 'Chronoamperometry':
                 print(event, values)
                 system_data.test_name = values['-TestName-']
-                system_data.n_measurements = values['-NMeasurements-']
-                system_data.step_volume = float(values['-StepVolume-'])/1000
                 system_data.flow_rate = values['-FlowRate-']
                 system_data.t_equil = float(values['-T_equil-'])
                 system_data.e_dep = float(values['-E_dep-'])
