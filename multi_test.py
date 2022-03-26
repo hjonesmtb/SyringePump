@@ -265,6 +265,7 @@ def parameter_window_process():
             new_parameters = True
             window.close()
             break
+        print('268')
         window['-TEST_STATUS-'].update('Press Start to Start Pumping')
 
         if event.startswith('-OPEN SEC1-'):
@@ -411,6 +412,13 @@ def take_measurement(data_queue, pump, pstat):
         data.measurements += 1
         data_queue.task_done()
 
+
+def multi_test(pstat):
+    print('multi_test')
+    pstat.deposition(60, 1, 0.5, [0,1])
+
+
+
 """Main process for GUI windows. Process occurs in the following steps:
 
 1). The USB port selection window appears allowing the user to select the correct usb connections
@@ -425,16 +433,23 @@ def take_measurement(data_queue, pump, pstat):
 def main():
     #Step 1: USB ports are selected by user input.
     new_parameters = True
+    print('430')
     while new_parameters == True:
         test_setting_process()
+        print('433')
+        new_parameters = False
     #Step 2: System Parameters are set by user input.
-        window, fig_agg, data_folder, new_parameters = parameter_window_process()
+        # window, fig_agg, data_folder, new_parameters = parameter_window_process()
     #Step 3:
-    pump = connect_to_pump()
+    # pump = connect_to_pump()
+    pump = True
     #Step 4:
+    print('438')
     pstat = connect_to_pstat()
     #Step 5:
-    conduct_measurements(pstat, pump, window, fig_agg, data_folder)
+    multi_test(pstat)
+    print('450')
+    # conduct_measurements(pstat, pump, window, fig_agg, data_folder)
 
    #Keeps measurement window open until closed
     while True:
