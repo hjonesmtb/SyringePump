@@ -51,19 +51,19 @@ class System_Data:
         self.valve_turned = False
         self.measurement_time = 0
         # measurment data
-        self.current_swv = []
-        self.potential_swv = []
-        self.overload_swv = []
-        self.underload_swv = []
-        self.current_dep = []
-        self.potential_dep = []
-        self.overload_dep = []
-        self.underload_dep = []
-        self.total_potential = []
-        self.total_current = []
-        self.noise = []
-        self.time = []
-        self.time_dep = []
+        self.current_swv = [0]
+        self.potential_swv = [0]
+        self.overload_swv = [0]
+        self.underload_swv = [0]
+        self.current_dep = [0]
+        self.potential_dep = [0]
+        self.overload_dep = [0]
+        self.underload_dep = [0]
+        self.total_potential = [0]
+        self.total_current = [0]
+        self.noise = [0]
+        self.time = [0]
+        self.time_dep = [0]
         self.measurements = 0
         # test type
         self.test_types = TEST_TYPES

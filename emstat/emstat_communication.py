@@ -174,7 +174,7 @@ class Emstat:
                 time_now = time.time()-starttime
                 time_log.append(time_now)
                 print(potential, current)
-            self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
+                self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
         return
 
     '''Sends a key(c or L) to the emstat, waits until the key is returned to make sure
@@ -337,7 +337,7 @@ class Emstat:
                 underload_swv.append(current_underload)
                 time_swv.append(time.time()- self.system_data.start_time)
                 print("swv", potential, current)
-            self.system_data.write_swv(time_swv, potential_swv, current_swv, overload_swv, underload_swv)
+                self.system_data.write_swv(time_swv, potential_swv, current_swv, overload_swv, underload_swv)
             print("measurement complete")
         except Exception as e:
             print("Process terminated")
