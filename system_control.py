@@ -367,8 +367,60 @@ def pump_fluid(pump, window):
     pump.stop()
     return
 
-def chrono_measurements(pstat, pump, window, ax, fig_agg, data_folder):
-        return
+def chrono_measurements(pstat, pump, window):
+    #start pump, output current
+    pump.infuse()
+    window['-TEST_STATUS-'].update('Initial flow-through phase. When system is ready (~60s), hit load sample to start the 5 second timer to load sample.')
+    window['-START-'].update('Load Sample')
+
+    #Step 1:Start pumping fluid until the user chooses to turn the valve
+    window.perform_long_operation(lambda :
+                                          pstat.deposition(self.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1]),
+                                          '-INITIAL_DONE-') #Depose for 4 minutes and plot data. Wait until user hits load sample.
+    while True: #Loop to start pumping and get user to turn valve
+        window['-TEST_TIME-'].update('Pumping time: {}'.format(round(time.time()-system_data.start_time)))
+        system_data.plot_data()
+        if event in ('-START-', None):
+            system_data.stop_pstat = True #Send flag to pstat to stop measurement
+
+            #counts down for user to turn valve
+            countdown_start = time.time()
+            while time.time() - countdown_start < 5:
+                window['-TEST_STATUS-'].update('Load Sample in {} seconds'.format(5 - round(time.time() - countdown_start)))
+                window.read(10)
+            window['-TEST_STATUS-'].update('Turn Sample Valve')
+            window.read(10)
+            system_data.inject_time = time.time() - start_time
+            system_data.valve_turned = True
+            break
+        if event in ('INITIAL_DONE'):
+            window['-TEST_STATUS-'].update('Pump flowed for {} minutes, please restart'.format(system_data.initial_pump_time / 60))
+            window.read(10)
+            restart(pstat, pump, window)
+        check_for_stop(pstat, pump, window)
+        window.read(10)
+
+    system_data.stop_pstat = False #Unsend flag to pstat to stop measurement
+
+    #Step 2: Once valve is turned, run chronoamp
+    while True:
+        window['-TEST_STATUS-'].update('Chronoamp Measurement Running')
+
+        #Step 2a: Deposition
+        pump.infuse()
+        system_data.measurement_time = time.time()
+        window.perform_long_operation(lambda :
+                                              pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1]),
+                                              '-DEPOSITION_DONE-') #Deposition.
+        while True: #Loop for deposition
+            system_data.plot_data()
+            window['-TEST_TIME-'].update('Test time since valve turned: {}'.format(round(time.time()-system_data.inject_time)))
+            if event in ('-DEPOSITION_DONE-', None):
+                pump.stop()
+                break
+            check_for_stop(pstat, pump, window)
+            window.read(10)
+    restart(pstat, pump, window)
 
 '''Checks if the Stop button has been pressed. If so, returns to main GUI window'''
 def check_for_stop(pstat, pump, window):
