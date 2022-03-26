@@ -136,23 +136,23 @@ class System_Data:
         return
 
     def write_swv(self,time, pot, cur, over, under):
-        self.time.extend(time)
+        self.time.append(time[-1])
         self.potential_swv = pot
         self.current_swv = cur
         self.overload_swv = over
         self.underload_swv = under
-        self.total_potential.extend(pot)
-        self.total_current.extend(cur)
+        self.total_potential.append(pot[-1])
+        self.total_current.append(cur[-1])
 
     def write_dep(self, time, pot, cur, over, under):
         self.time_dep = time
-        self.time.extend(time) #get last element to stop duplicate values in data
+        self.time.append(time[-1])#get last element to stop duplicate values in data
         self.potential_dep = pot
         self.current_dep = cur
         self.overload_dep = over
         self.underload_dep = under
-        self.total_potential.extend(pot)
-        self.total_current.extend(cur)
+        self.total_potential.append(pot[-1])
+        self.total_current.append(cur[-1])
 
     def save_data(self):
         #save the test configuration
