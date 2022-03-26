@@ -44,8 +44,12 @@ class System_Data:
     def __init__(self, data_dict = None):
         #loads default values
         self.initial_pump_time = 240 #initial pumping time
-        self.start_time = 0
-
+        self.start_time = 0 #Time user first hits start button
+        self.time_end = 0 #Time the measurement ends
+        self.stop_pstat = False
+        self.inject_time = 0 #Time user turns valve
+        self.valve_turned = False
+        self.measurement_time = 0
         # measurment data
         self.current_swv = []
         self.potential_swv = []
@@ -78,8 +82,8 @@ class System_Data:
         self.fig_agg = None
         self.fig = None
         self.canvas = None
-        
-        
+
+
         if data_dict == None:
             print("No JSON file found, loading in default values...")
             # test type
@@ -124,11 +128,11 @@ class System_Data:
             self.step_volume = data_dict["step_volume"]
             self.syringe_diam = data_dict["syringe_diam"]
             self.n_electrodes = data_dict["n_electrodes"]
-            
+
         self.path = PATH + '\data'
         #fix naming of folder
         self.data_folder = os.path.join(self.path, self.test_name)
-        
+
         return
 
     def write_swv(self,time, pot, cur, over, under):
@@ -155,7 +159,7 @@ class System_Data:
         if not os.path.exists(self.data_folder):
             os.makedirs(self.data_folder)
             os.makedirs(os.path.join(self.data_folder, 'csv'))
-        
+
         jsonFile = self.data_folder + '/config.json'
         with open(jsonFile, "w") as write_file:
             json.dump(self.encode_system_data(), write_file)
@@ -263,7 +267,7 @@ class System_Data:
             self.ax_chrono = self.fig.add_subplot(111)
             self.ax_chrono.set_xlabel('Time(s)')
             self.ax_chrono.set_ylabel('Current (uA)')
-            
+
         elif self.test_type == 'Cyclic Voltammetry':
             #draw the initial plot in the window
             self.fig = plt.figure(1, figsize = self.figsize)
@@ -284,6 +288,3 @@ def pad_dict_list(dict_list, pad_val):
         if  ll < lmax:
             dict_list[lname] += [pad_val] * (lmax - ll)
     return dict_list
-
-
-    

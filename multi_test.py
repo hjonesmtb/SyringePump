@@ -84,10 +84,9 @@ def test_settings_gui_format(usbs, port_name):
 def control_windows():
     layout = parameters_Format()
     window = sg.Window('Start Screen', layout, finalize=True, resizable=True)
-    system_data.Initialize_Plots(window)
-    # system_data.plot_data()
+    fig_agg = Plot_GUI_Format(window)
     window.Maximize()
-    return window
+    return window, fig_agg
 
 def voltammetry_gui_format():
     layout = []
@@ -132,6 +131,7 @@ def cyclic_format():
 def pump_format():
     pump_parameters = [
             [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
+
             [sg.Text('Time [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(120, key='-T_dep-')],
             ]
     return pump_parameters
@@ -141,6 +141,7 @@ def chronoamp_format():
     chrono_parameters = [
             [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name, key=('-TestName-'))],
             [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
+
             [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_dep, key='-E_dep-')],
             [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_equil, key='-T_equil-')],
             [sg.Text('t deposition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_dep, key='-T_dep-')],
@@ -154,10 +155,9 @@ def parameters_Format():
             [sg.T(SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-', text_color='white'), sg.T('Parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
             [collapse(V_parameters, '-SEC1-')],
             [sg.Button('Back', size=(15, 1), font='Helvetica 14'),
-             sg.pin(sg.Button('Start', size=(15, 1), font='Helvetica 14', k = '-START-')),
-             sg.pin(sg.Button('Stop', size=(15, 1), font='Helvetica 14'))],
-            [sg.Text(key='-TEST_STATUS-', size=(30, 1), font='Helvetica 20')],
-            [sg.Text(key='-TEST_TIME-', size=(30, 1), font='Helvetica 20')
+             sg.pin(sg.Button('Start', size=(15, 1), font='Helvetica 14')),
+             sg.pin(sg.Button('Exit', size=(15, 1), font='Helvetica 14'))],
+            [sg.Text(key='-TEST_STATUS-', size=(30, 1), font='Helvetica 20')
             ],
             ]
     col2 =[
@@ -168,6 +168,62 @@ def parameters_Format():
             ]
     layout = [[sg.Column(col1, element_justification='l' ), sg.Column(col2, element_justification='c')]]
     return layout
+
+def Plot_GUI_Format(window):
+    canvas_elem = window['-PLOT-']
+    canvas = canvas_elem.TKCanvas
+
+    if system_data.test_type == 'Stop-Flow':
+        #draw the initial plot in the window
+        fig = plt.figure(1, figsize = system_data.figsize)
+        fig.clf()
+        ax_dep = fig.add_subplot(121)
+        ax_dep.set_xlabel('time(s)')
+        ax_dep.set_ylabel('Current (uA)')
+        ax_dep.set_title('Deposition Current')
+
+        ax_swv = fig.add_subplot(122)
+        ax_swv.set_xlabel('Potential (V)')
+        ax_swv.set_ylabel('Current (uA)')
+        ax_swv.set_title('Squarewave Current')
+        fig_agg = draw_figure(canvas, fig)
+
+        system_data.ax_swv = ax_swv
+        system_data.ax_dep = ax_dep
+
+        return fig_agg
+
+    if system_data.test_type == 'Chronoamperometry':
+        #draw the initial plot in the window
+        fig = plt.figure(1, figsize = system_data.figsize)
+        fig.clf()
+        ax_chrono = fig.add_subplot(111)
+        ax_chrono.set_xlabel('time(s)')
+        ax_chrono.set_ylabel('Current (uA)')
+        fig_agg = draw_figure(canvas, fig)
+
+        system_data.axchrono = ax_chrono
+
+        return fig_agg
+
+    if system_data.test_type == 'Cyclic Voltammetry':
+        #draw the initial plot in the window
+        fig = plt.figure(1, figsize = system_data.figsize)
+        fig.clf()
+        ax_cyclic = fig.add_subplot(111)
+        ax_swv.set_xlabel('Potential (V)')
+        ax_swv.set_ylabel('Current (uA)')
+        fig_agg = draw_figure(canvas, fig)
+
+        system_data.ax_cyclic = ax_cyclic
+
+        return fig_agg
+
+def draw_figure(canvas, figure, loc=(50, 0)):
+    figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
+    figure_canvas_agg.draw()
+    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
+    return figure_canvas_agg
 
 #allows section of GUI to be collapsed
 def collapse(layout, key):
@@ -196,20 +252,20 @@ def parameter_window_process():
     is_expanded = True
     #boolean value allows for test to be changed.
     new_parameters = True
-
-    #GUI Window is created
-    window = control_windows()
+    window, fig_agg = control_windows()
+    data_folder = ""
 
     # Enter measurement parameters and start pumping
     while True:
-        event, values = window.read(10)
-        if event == sg.WIN_CLOSED:
-            new_parameters = True
+        event, values = window.read(timeout=10)
+        if event == sg.WIN_CLOSED or event == 'Exit':
+            new_parameters = False
             break
         if event == 'Back':
             new_parameters = True
             window.close()
             break
+        print('268')
         window['-TEST_STATUS-'].update('Press Start to Start Pumping')
 
         if event.startswith('-OPEN SEC1-'):
@@ -217,39 +273,48 @@ def parameter_window_process():
             window['-OPEN SEC1-'].update(SYMBOL_DOWN if is_expanded else SYMBOL_UP)
             window['-SEC1-'].update(visible=is_expanded)
 
-        if event in ('-START-', None):
-            system_data.start_time = time.time()
-            if system_data.test_type == 'Stop-Flow':
-                print(event, values)
-                system_data.test_name = values['-TestName-']
-                system_data.n_measurements = float(values['-NMeasurements-'])
-                system_data.step_volume = float(values['-StepVolume-'])/1000
-                system_data.flow_rate = float(values['-FlowRate-'])
-                system_data.e_cond, system_data.t_cond = float(values['-E_cond-']), float(values['-T_cond-'])
-                system_data.e_dep = float(values['-E_dep-'])
-                system_data.t_equil = float(values['-T_equil-'])
-                system_data.e_begin, system_data.e_end, system_data.e_step = float(values['-E_begin-']), float(values['-E_end-']), float(values['-E_step-'])
-                system_data.amplitude = float(values['-Amp-'])
-                system_data.frequencies =  [float(values['-Freq_1-']), float(values['-Freq_2-']), float(values['-Freq_3-'])]
-                system_data.t_dep = float(system_data.step_volume) / (float(system_data.flow_rate)*system_data.flowrate_conversion) #s/measurement
-                new_parameters = False
-                break
+        if event in ('Start', None) and system_data.test_type == 'Stop-Flow':
+            print(event, values)
+            system_data.test_name = values['-TestName-']
+            system_data.n_measurements = values['-NMeasurements-']
+            system_data.step_volume = float(values['-StepVolume-'])/1000
+            system_data.flow_rate = values['-FlowRate-']
+            system_data.e_cond, system_data.t_cond = float(values['-E_cond-']), float(values['-T_cond-'])
+            system_data.e_dep = float(values['-E_dep-'])
+            system_data.t_equil = float(values['-T_equil-'])
+            system_data.e_begin, system_data.e_end, system_data.e_step = float(values['-E_begin-']), float(values['-E_end-']), float(values['-E_stop-'])
+            system_data.amplitude = float(values['-Amp-'])
+            system_data.frequencies =  [float(values['-Freq_1-']), float(values['-Freq_2-']), float(values['-Freq_3-'])]
+            system_data.t_dep = system_data.step_volume / (system_data.flow_rate*system_data.flowrate_conversion) #s/measurement
+            new_parameters = False
+            break
 
-            if system_data.test_type == 'Chronoamperometry':
-                print(event, values)
-                system_data.test_name = values['-TestName-']
-                system_data.flow_rate = values['-FlowRate-']
-                system_data.t_equil = float(values['-T_equil-'])
-                system_data.e_dep = float(values['-E_dep-'])
-                system_data.t_dep = float(values['-T_dep-']) #s/measurement
-                new_parameters = False
-                break
+        if event in ('Start', None) and system_data.test_type == 'Chronoamperometry':
+            print(event, values)
+            system_data.test_name = values['-TestName-']
+            system_data.n_measurements = values['-NMeasurements-']
+            system_data.step_volume = float(values['-StepVolume-'])/1000
+            system_data.flow_rate = values['-FlowRate-']
+            system_data.t_equil = float(values['-T_equil-'])
+            system_data.e_dep = float(values['-E_dep-'])
+            system_data.t_dep = float(values['-T_dep-']) #s/measurement
+            new_parameters = False
+            break
 
-    return window, new_parameters
+    if not new_parameters:
+        path = os.getcwd() + '\data'
+        new_folder = system_data.test_name
+        data_folder = os.path.join(path, new_folder)
+        if not os.path.exists(data_folder):
+            os.makedirs(data_folder)
+            os.makedirs(os.path.join(data_folder, 'plots'))
+            os.makedirs(os.path.join(data_folder, 'csv'))
+    return window, fig_agg, data_folder, new_parameters
 
 def connect_to_pump():
     # connect to pump
     pump = Pump.from_parameters(system_data)
+    #pump = Pump(system_data.["pump_com"], system_data.["pump_baud"])
     pump.set_diameter(system_data.syringe_diam) # Fixed syringe diameter
     pump.set_rate(system_data.flow_rate,'uL/min')
     system_data.infusion_volume = system_data.step_volume*system_data.n_measurements
@@ -263,182 +328,95 @@ def connect_to_pstat():
     return Emstat.from_parameters(system_data)
     #return Emstat(system_data.["pstat_com"], system_data.["e_cond"], system_data.["t_cond"], system_data.["e_dep"], system_data.["t_dep"], system_data.["t_equil"], system_data.["e_begin"], system_data.["e_end"], system_data.["e_step"], system_data.["amplitude"], system_data.["frequency"])
 
-def conduct_measurements(pstat, pump, window):
+def conduct_measurements(pstat, pump, window, axswv, axdep, fig_agg, data_folder):
+    #data_queue = queue.Queue()
+    #thread = threading.Thread(target=take_measurement(data_queue, pump, pstat))
+    #thread.start()
+    # for measure in range(system_data.n_measurements):
+    #     data_queue.put(system_data)
+    #system_data.write_swv(np.zeros(100), np.zeros(100),np.zeros(100),np.zeros(100))
+    # toggle flow on/off while measuring pstat
+
     if system_data.test_type == 'Stop-Flow':
-        stop_flow_measurements(pstat, pump, window)
+            #TODO Fill in proper proto
+        stop_flow_measurements(pstat, pump, window, fig_agg, data_folder)
     elif system_data.test_type == 'Cyclic voltammetry':
-        cyclic_measurements(pstat, pump, window)
+        cyclic_measurements(pstat, pump, window, fig_agg, data_folder)
     elif system_data.test_type == 'Pump':
         pump_fluid(pump, window)
     elif system_data.test_type == 'Chronoamperometry':
-        chrono_measurements(pstat, pump, window)
+        chrono_measurements(pstat, pump, window, fig_agg, data_folder)
 
-def stop_flow_measurements(pstat, pump, window):
-    #start pump, output current
+def stop_flow_measurements(pstat, pump, window, fig_agg, data_folder):
+    # start flow for one minute until user chooses to start test. Plot current during
+    # Pop up window for user to turn valve
+    # Once user turns, start measurement
+    # Pump flow
+    # deposit, threaded
+    # Pump stop
+    # Cyclic, threaded
+    # Repeat
+
     pump.infuse()
-    window['-TEST_STATUS-'].update('Initial flow-through phase. When system is ready (~60s), hit load sample to start the 5 second timer to load sample.')
-    window['-START-'].update('Load Sample')
+    #thread this
+    pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1])
 
-    #Step 1:Start pumping fluid until the user chooses to turn the valve
-    window.perform_long_operation(lambda :
-                                          pstat.deposition(self.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1]),
-                                          '-INITIAL_DONE-') #Depose for 4 minutes and plot data. Wait until user hits load sample.
-    while True: #Loop to start pumping and get user to turn valve
-        window['-TEST_TIME-'].update('Pumping time: {}'.format(round(time.time()-system_data.start_time)))
-        system_data.plot_data()
-        if event in ('-START-', None):
-            system_data.stop_pstat = True #Send flag to pstat to stop measurement
 
-            #counts down for user to turn valve
-            countdown_start = time.time()
-            while time.time() - countdown_start < 5:
-                window['-TEST_STATUS-'].update('Load Sample in {} seconds'.format(5 - round(time.time() - countdown_start)))
-                window.read(10)
-            window['-TEST_STATUS-'].update('Turn Sample Valve')
-            window.read(10)
-            system_data.inject_time = time.time() - start_time
-            system_data.valve_turned = True
-            break
-        if event in ('INITIAL_DONE'):
-            window['-TEST_STATUS-'].update('Pump flowed for {} minutes, please restart'.format(system_data.initial_pump_time / 60))
-            window.read(10)
-            restart(pstat, pump, window)
-        check_for_stop(pstat, pump, window)
-        window.read(10)
-
-    system_data.stop_pstat = False #Unsend flag to pstat to stop measurement
-
-    #Step 2: Once valve is turned, cycle through deposition and swv measurements
-    while True:
-        system_data.measurements += 1
-        window['-TEST_STATUS-'].update('Squarewave Measurement Running')
-
-        #Step 2a: Deposition
-        pump.infuse()
-        system_data.measurement_time = time.time()
-        window.perform_long_operation(lambda :
-                                              pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1]),
-                                              '-DEPOSITION_DONE-') #Deposition.
-        while True: #Loop for deposition
-            system_data.plot_data()
-            window['-TEST_TIME-'].update('Test time since valve turned: {}'.format(round(time.time()-system_data.inject_time)))
-            window['-MEASUREMENT-'].update('Deposition, measurement #{}'.format(system_data.measurements))
-            window['-TIME-'].update('Measurement Time: {}'.format(round(time.time()-system_data.measurement_time)))
-            if event in ('-DEPOSITION_DONE-', None):
-                pump.stop()
-                break
-            check_for_stop(pstat, pump, window)
-            window.read(10)
-
-        #Step 2b: SWV
-        window.perform_long_operation(lambda :
-                                              pstat.sweepSWV(),
-                                              '-SWV_DONE-') #SWV.
-        while True: #Loop for swv
-            system_data.plot_data()
-            window['-TEST_TIME-'].update('Test time since valve turned: {}'.format(round(time.time()-system_data.inject_time)))
-            window['-MEASUREMENT-'].update('SWV, measurement #{}'.format(system_data.measurements))
-            window['-TIME-'].update('Measurement Time: {}'.format(round(time.time()-system_data.measurement_time)))
-
-            if event in ('-SWV_DONE-', None):
-                break
-            check_for_stop(pstat, pump, window)
-            window.read(10)
-
-        check_for_stop(pstat, pump, window)
-        window.read(10)
-
-        # Once measurements are complete, keep pumping
-        if system_data.measurements >= system_data.n_measurements:
-            system_data.time_end = time.time()
-            break
-    #TODOStep 3: Once measurement is complete, keep pummping
-    # window['-TEST_STATUS-'].update('Pump ')
-    restart(pstat, pump, window)
-
-def cyclic_measurements(pstat, pump, window):
-    pump.infuse()
-    pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
     pump.stop()
-    return
+    pstat.sweepSWV()
+    system_data.measurements += 1
 
-def pump_fluid(pump, window):
-    pump.infuse()
-    pump.stop()
-    return
-
-def chrono_measurements(pstat, pump, window):
-    #start pump, output current
-    pump.infuse()
-    window['-TEST_STATUS-'].update('Initial flow-through phase. When system is ready (~60s), hit load sample to start the 5 second timer to load sample.')
-    window['-START-'].update('Load Sample')
-
-    #Step 1:Start pumping fluid until the user chooses to turn the valve
-    window.perform_long_operation(lambda :
-                                          pstat.deposition(self.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1]),
-                                          '-INITIAL_DONE-') #Depose for 4 minutes and plot data. Wait until user hits load sample.
-    while True: #Loop to start pumping and get user to turn valve
-        window['-TEST_TIME-'].update('Pumping time: {}'.format(round(time.time()-system_data.start_time)))
-        system_data.plot_data()
-        if event in ('-START-', None):
-            system_data.stop_pstat = True #Send flag to pstat to stop measurement
-
-            #counts down for user to turn valve
-            countdown_start = time.time()
-            while time.time() - countdown_start < 5:
-                window['-TEST_STATUS-'].update('Load Sample in {} seconds'.format(5 - round(time.time() - countdown_start)))
-                window.read(10)
-            window['-TEST_STATUS-'].update('Turn Sample Valve')
-            window.read(10)
-            system_data.inject_time = time.time() - start_time
-            system_data.valve_turned = True
-            break
-        if event in ('INITIAL_DONE'):
-            window['-TEST_STATUS-'].update('Pump flowed for {} minutes, please restart'.format(system_data.initial_pump_time / 60))
-            window.read(10)
-            restart(pstat, pump, window)
-        check_for_stop(pstat, pump, window)
-        window.read(10)
-
-    system_data.stop_pstat = False #Unsend flag to pstat to stop measurement
-
-    #Step 2: Once valve is turned, run chronoamp
     while True:
-        window['-TEST_STATUS-'].update('Chronoamp Measurement Running')
-
-        #Step 2a: Deposition
+        # start flow, deposit norfentynal
         pump.infuse()
-        system_data.measurement_time = time.time()
-        window.perform_long_operation(lambda :
-                                              pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1]),
-                                              '-DEPOSITION_DONE-') #Deposition.
-        while True: #Loop for deposition
-            system_data.plot_data()
-            window['-TEST_TIME-'].update('Test time since valve turned: {}'.format(round(time.time()-system_data.inject_time)))
-            if event in ('-DEPOSITION_DONE-', None):
-                pump.stop()
-                break
-            check_for_stop(pstat, pump, window)
-            window.read(10)
-    restart(pstat, pump, window)
-
-'''Checks if the Stop button has been pressed. If so, returns to main GUI window'''
-def check_for_stop(pstat, pump, window):
-    if event in ('Stop', none):
-        system_data.stop_pstat = True
+        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
         pump.stop()
-        restart(pstat, pump, window)
-    return
+        pstat.sweepSWV()
+        system_data.measurements += 1
+        plt.figure(1)
+        ax.grid() # draw the grid
+        ax.plot(system_data.potential_swv,system_data.current_swv) #plot new pstat readings
 
-'''Starts another measurement once user has stopped'''
-def restart(pstat, pump, window):
-    new_parameters = True:
-    while new_parameters:
-        #Step 2: System Parameters are set by user input.
-        window, new_parameters = parameter_window_process()
-        if new_parameters:
-            test_setting_process()
-    conduct_measurements(pstat, pump, window)
+        df = pd.DataFrame({'Potential':system_data.potential_swv, 'Current':system_data.current_swv})
+        df.to_csv(data_folder + '/csv/' + str(system_data.measurements) + '.csv')
+        ax.set_xlabel('Potential (V)')
+        ax.set_ylabel('Current (uA)')
+        fig_agg.draw()
+        fig2 = plt.figure(2)
+        plt.clf()
+        plt.plot(system_data.potential_swv,system_data.current_swv)
+        plt.xlabel('Potential (V)')
+        plt.ylabel('Current (uA)')
+        plt.savefig(data_folder + '/plots/' + str(system_data.measurements) + '.png')
+
+        window.read(10)
+
+        # Stop program when we've completed all measurements
+        if system_data.measurements >= system_data.n_measurements:
+            #thread.join()
+            pump.stop()
+            pump.close()
+            pstat.close()
+            break
+
+
+
+def take_measurement(data_queue, pump, pstat):
+    while True:
+        data = data_queue.get()
+        #do something
+        pump.infuse()
+        pstat.deposition(data.t_dep)
+        pump.stop()
+        data.write_IV(pstat.sweepSWV())
+        data.measurements += 1
+        data_queue.task_done()
+
+
+def multi_test(pstat):
+    print('multi_test')
+    pstat.deposition(60, 1, 0.5, [0,1])
+
 
 
 """Main process for GUI windows. Process occurs in the following steps:
@@ -455,21 +433,28 @@ def restart(pstat, pump, window):
 def main():
     #Step 1: USB ports are selected by user input.
     new_parameters = True
+    print('430')
     while new_parameters == True:
         test_setting_process()
-        #Step 2: System Parameters are set by user input.
-        window, new_parameters = parameter_window_process()
+        print('433')
+        new_parameters = False
+    #Step 2: System Parameters are set by user input.
+        # window, fig_agg, data_folder, new_parameters = parameter_window_process()
     #Step 3:
-    pump = connect_to_pump()
+    # pump = connect_to_pump()
+    pump = True
     #Step 4:
+    print('438')
     pstat = connect_to_pstat()
     #Step 5:
-    conduct_measurements(pstat, pump, window)
+    multi_test(pstat)
+    print('450')
+    # conduct_measurements(pstat, pump, window, fig_agg, data_folder)
 
    #Keeps measurement window open until closed
     while True:
         event, values = window.read(timeout=10)
-        if event == sg.WIN_CLOSED:
+        if event == sg.WIN_CLOSED or event == 'Exit':
             pump.stop()
             pump.close()
             pstat.close()

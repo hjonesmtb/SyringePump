@@ -149,11 +149,17 @@ class Emstat:
             U_data = []
             char = self.readData(1).decode()
             while char != 'U': #Write Skip bytes until first P is read
+                if self.check_for_stop():
+                    break
                 char = self.readData(1).decode()
             while char != '*': #end condition
+                if self.check_for_stop():
+                    break
                 package = ''
                 char = self.readData(1).decode()
                 while char != "U" and char != "*":
+                    if self.check_for_stop():
+                        break
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
@@ -183,6 +189,23 @@ class Emstat:
             count += 1
             if count > 30:
                 self.sendData(key) #Try again
+        return
+
+    '''Checks if pstat needs to stop'''
+    def check_for_stop(self):
+        if self.system_data.stop_pstat:
+            self.end_measurement()
+            return True
+        return False
+
+    '''Pauses Emstat measurement if running, resumes measurement if stopped'''
+    def pause_unpause_measurement(self):
+        self.sendData('z')
+        return
+
+    '''Ends emstat measurement'''
+    def end_measurement(self):
+        self.sendData('Z')
         return
 
     #Runs swv sweep, returns array with potential, current, overload and underload arrays
@@ -260,6 +283,8 @@ class Emstat:
             skip_T = False
             n = 0
             while True:
+                if self.check_for_stop():
+                    break
                 char = self.readData(1).decode()
                 print(char)
                 if n > 200:
@@ -274,9 +299,13 @@ class Emstat:
 
             if not skip_T:
                 while char != 'U': #Write T poackages as long as no U is read
+                    if self.check_for_stop():
+                        break
                     package = ''
                     char = self.readData(1).decode()
                     while char != "T" and char != "M" and char != "U": #M is the present at the end of the last T-package
+                        if self.check_for_stop():
+                            break
                         if char != "":
                             package = package + char
                         char = self.readData(1).decode()
@@ -288,9 +317,13 @@ class Emstat:
                     T_data.append(package)
 
             while char != '*': #end condition
+                if self.check_for_stop():
+                    break
                 package = ''
                 char = self.readData(1).decode()
                 while char != "U" and char != "*":
+                    if self.check_for_stop():
+                        break
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
@@ -328,7 +361,7 @@ class Emstat:
         Econd = self.potential_to_cmd(e_cond)
         Edep = self.potential_to_cmd(0)
         Ebegin = self.potential_to_cmd(e_begin)
-        Estep = int(e_step * 10000) 
+        Estep = int(e_step * 10000)
         Epulse = int(amplitude * 10000)
         #tInt
         tInt = self.tint_calc(freq[0])
