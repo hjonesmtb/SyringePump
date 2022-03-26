@@ -165,7 +165,8 @@ class Emstat:
                 current_dep.append(current)
                 overload_dep.append(current_overload)
                 underload_dep.append(current_underload)
-                time_log.append(time.time()-starttime)
+                time_now = time.time()-starttime
+                time_log.append(time_now)
                 print(potential, current)
             self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
         return

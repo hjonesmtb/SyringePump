@@ -140,9 +140,9 @@ class System_Data:
         self.total_potential.extend(pot)
         self.total_current.extend(cur)
 
-    def write_dep(self, time,  pot, cur, over, under):
+    def write_dep(self, time, pot, cur, over, under):
         self.time_dep = time
-        self.time.extend(time)
+        self.time.extend(time) #get last element to stop duplicate values in data
         self.potential_dep = pot
         self.current_dep = cur
         self.overload_dep = over
@@ -215,7 +215,7 @@ class System_Data:
         cmap = cm.get_cmap('Dark2', int(10))
         colour = cmap(self.measurements % self.n_measurements / 10)
         if self.test_type == 'Stop-Flow':
-            self.ax_dep.plot(self.time_dep,self.potential_dep, color = colour)
+            self.ax_dep.plot(self.time_dep,self.current_dep, color = colour)
             self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
             self.ax_swv.plot(self.potential_swv,self.current_swv, color = colour)
             self.fig_agg.draw()
@@ -223,7 +223,7 @@ class System_Data:
             self.ax_cyclic.plot(self.potential_dep,self.current_dep, color = colour)
             self.fig_agg.draw()
         elif self.test_type == 'Chronoamperometry':
-            self.ax_chrono.plot(self.time_dep, self.potential_dep, color = colour)
+            self.ax_chrono.plot(self.time_dep, self.current_dep, color = colour)
             self.fig_agg.draw()
 
         return
@@ -247,21 +247,21 @@ class System_Data:
             self.fig = plt.figure(1, figsize = self.figsize)
             self.fig.clf()
             self.ax_dep = self.fig.add_subplot(121)
-            self.ax_dep.set_xlabel('time(s)')
+            self.ax_dep.set_xlabel('Time(s)')
             self.ax_dep.set_ylabel('Current (uA)')
             self.ax_dep.set_title('Deposition Current')
 
             self.ax_swv = self.fig.add_subplot(122)
             self.ax_swv.set_xlabel('Potential (V)')
             self.ax_swv.set_ylabel('Current (uA)')
-            self.ax_swv.set_title('Squarewave Current')
+            self.ax_swv.set_title('Square Wave Current')
             
         elif self.test_type == 'Chronoamperometry':
             #draw the initial plot in the window
             self.fig = plt.figure(1, figsize = self.figsize)
             self.fig.clf()
             self.ax_chrono = self.fig.add_subplot(111)
-            self.ax_chrono.set_xlabel('time(s)')
+            self.ax_chrono.set_xlabel('Time(s)')
             self.ax_chrono.set_ylabel('Current (uA)')
             
         elif self.test_type == 'Cyclic Voltammetry':
