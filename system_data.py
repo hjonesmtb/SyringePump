@@ -3,6 +3,7 @@ import json
 from typing import Type
 import os
 import pandas as pd
+import PySimpleGUI as sg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, FigureCanvasAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
@@ -54,8 +55,11 @@ class System_Data:
         self.potential_dep = []
         self.overload_dep = []
         self.underload_dep = []
+        self.total_potential = []
+        self.total_current = []
         self.noise = []
         self.time = []
+        self.time_dep = []
         self.measurements = 0
         # test type
         self.test_types = TEST_TYPES
@@ -71,6 +75,9 @@ class System_Data:
         self.ax_swv = []
         self.ax_cyclic = []
         self.ax_chrono = []
+        self.fig_agg = None
+        self.fig = None
+        self.canvas = None
         
         
         if data_dict == None:
@@ -121,45 +128,47 @@ class System_Data:
         self.path = PATH + '\data'
         #fix naming of folder
         self.data_folder = os.path.join(self.path, self.test_name)
-        self.fig_agg = []
-        self.fig = []
+        
         return
 
-    def write_swv(self, pot, cur, over, under):
+    def write_swv(self,time, pot, cur, over, under):
+        self.time.extend(time)
         self.potential_swv = pot
         self.current_swv = cur
         self.overload_swv = over
         self.underload_swv = under
+        self.total_potential.extend(pot)
+        self.total_current.extend(cur)
 
-    def write_dep(self,time,  pot, cur, over, under):
-        self.time = time
+    def write_dep(self, time,  pot, cur, over, under):
+        self.time_dep = time
+        self.time.extend(time)
         self.potential_dep = pot
         self.current_dep = cur
         self.overload_dep = over
         self.underload_dep = under
+        self.total_potential.extend(pot)
+        self.total_current.extend(cur)
 
     def save_data(self):
         #save the test configuration
         if not os.path.exists(self.data_folder):
             os.makedirs(self.data_folder)
-            os.makedirs(os.path.join(self.data_folder, 'plots'))
             os.makedirs(os.path.join(self.data_folder, 'csv'))
         
         jsonFile = self.data_folder + '/config.json'
         with open(jsonFile, "w") as write_file:
             json.dump(self.encode_system_data(), write_file)
         #save the csv
-        df = pd.DataFrame({'Potential_dep':self.potential_dep, 'Current_dep':self.current_dep,'Potential_SWV':self.potential_swv, 'Current_SWV':self.current_swv,})
-        df.to_csv(self.data_folder + '/csv/' + str(self.measurements) + '.csv')
-        #save the plots
-        plt.figure(2)
-        plt.clf()
-        plt.plot(self.potential_swv,self.current_swv)
-        plt.xlabel('Potential (V)')
-        plt.ylabel('Current (uA)')
-        plt.savefig(self.data_folder + '/plots/' + str(self.measurements) + '.png')
+        total_data = {'Time':self.time, 'Potential':self.total_potential,'Current':self.total_current,}
+        total_data = pad_dict_list(total_data, 0)
+        data_dict = {'Potential_dep':self.potential_dep, 'Current_dep':self.current_dep,'Potential_SWV':self.potential_swv, 'Current_SWV':self.current_swv,}
+        data_dict = pad_dict_list(data_dict, 0)
 
-        # self.fig.savefig(self.data_folder + '/plots/' + str(self.measurements) + '.png')
+        df = pd.DataFrame(data_dict)
+        df.to_csv(self.data_folder + '/csv/' + str(self.measurements) + '.csv')
+        df_t = pd.DataFrame(total_data)
+        df_t.to_csv(self.data_folder + '/csv/' + '.total.csv')
         return
 
     #creates dictionary to be JSON serialized from all the given data
@@ -206,15 +215,15 @@ class System_Data:
         cmap = cm.get_cmap('Dark2', int(10))
         colour = cmap(self.measurements % self.n_measurements / 10)
         if self.test_type == 'Stop-Flow':
-            self.ax_dep.plot(self.potential_dep,self.time, color = colour)
+            self.ax_dep.plot(self.time_dep,self.potential_dep, color = colour)
+            self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
             self.ax_swv.plot(self.potential_swv,self.current_swv, color = colour)
             self.fig_agg.draw()
         elif self.test_type == 'Cyclic voltammetry':
             self.ax_cyclic.plot(self.potential_dep,self.current_dep, color = colour)
             self.fig_agg.draw()
-            return
         elif self.test_type == 'Chronoamperometry':
-            self.ax_chrono.plot(self.potential_dep,self.time, color = colour)
+            self.ax_chrono.plot(self.time_dep, self.potential_dep, color = colour)
             self.fig_agg.draw()
 
         return
@@ -223,49 +232,58 @@ class System_Data:
         self.test_name = self.test_type + "_" + datetime.now().strftime("%y-%m-%d_%H%M")
         self.data_folder = os.path.join(self.path, self.test_name)
 
-    def draw_figure(self, canvas, figure, loc=(50, 0)):
-        figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
+    def draw_figure(self):
+        figure_canvas_agg = FigureCanvasTkAgg(self.fig, self.canvas)
         figure_canvas_agg.draw()
         figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
-        self.fig_agg =  figure_canvas_agg
+        self.fig_agg = figure_canvas_agg
 
     def Initialize_Plots(self, window):
         canvas_elem = window['-PLOT-']
-        canvas = canvas_elem.TKCanvas
+        self.canvas = canvas_elem.TKCanvas
 
         if self.test_type == 'Stop-Flow':
             #draw the initial plot in the window
-            fig = plt.figure(1, figsize = self.figsize)
-            fig.clf()
-            self.ax_dep = fig.add_subplot(121)
+            self.fig = plt.figure(1, figsize = self.figsize)
+            self.fig.clf()
+            self.ax_dep = self.fig.add_subplot(121)
             self.ax_dep.set_xlabel('time(s)')
             self.ax_dep.set_ylabel('Current (uA)')
             self.ax_dep.set_title('Deposition Current')
 
-            self.ax_swv = fig.add_subplot(122)
+            self.ax_swv = self.fig.add_subplot(122)
             self.ax_swv.set_xlabel('Potential (V)')
             self.ax_swv.set_ylabel('Current (uA)')
             self.ax_swv.set_title('Squarewave Current')
             
-        if self.test_type == 'Chronoamperometry':
+        elif self.test_type == 'Chronoamperometry':
             #draw the initial plot in the window
-            fig = plt.figure(1, figsize = self.figsize)
-            fig.clf()
-            self.ax_chrono = fig.add_subplot(111)
+            self.fig = plt.figure(1, figsize = self.figsize)
+            self.fig.clf()
+            self.ax_chrono = self.fig.add_subplot(111)
             self.ax_chrono.set_xlabel('time(s)')
             self.ax_chrono.set_ylabel('Current (uA)')
             
-        if self.test_type == 'Cyclic Voltammetry':
+        elif self.test_type == 'Cyclic Voltammetry':
             #draw the initial plot in the window
-            fig = plt.figure(1, figsize = self.figsize)
-            fig.clf()
-            self.ax_cyclic = fig.add_subplot(111)
+            self.fig = plt.figure(1, figsize = self.figsize)
+            self.fig.clf()
+            self.ax_cyclic = self.fig.add_subplot(111)
             self.ax_cyclic.set_xlabel('Potential (V)')
             self.ax_cyclic.set_ylabel('Current (uA)')
         else:
-            return
-        self.plot = fig
-        self.draw_figure(canvas, fig)
+            print("No Plot Initialized")
+        self.draw_figure()
+
+def pad_dict_list(dict_list, pad_val):
+    lmax = 0
+    for lname in dict_list.keys():
+        lmax = max(lmax, len(dict_list[lname]))
+    for lname in dict_list.keys():
+        ll = len(dict_list[lname])
+        if  ll < lmax:
+            dict_list[lname] += [pad_val] * (lmax - ll)
+    return dict_list
 
 
     

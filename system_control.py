@@ -85,6 +85,7 @@ def control_windows():
     layout = parameters_Format()
     window = sg.Window('Start Screen', layout, finalize=True, resizable=True)
     system_data.Initialize_Plots(window)
+    # system_data.plot_data()
     window.Maximize()
     return window
 
@@ -222,13 +223,13 @@ def parameter_window_process():
             if system_data.test_type == 'Stop-Flow':
                 print(event, values)
                 system_data.test_name = values['-TestName-']
-                system_data.n_measurements = values['-NMeasurements-']
+                system_data.n_measurements = float(values['-NMeasurements-'])
                 system_data.step_volume = float(values['-StepVolume-'])/1000
-                system_data.flow_rate = values['-FlowRate-']
+                system_data.flow_rate = float(values['-FlowRate-'])
                 system_data.e_cond, system_data.t_cond = float(values['-E_cond-']), float(values['-T_cond-'])
                 system_data.e_dep = float(values['-E_dep-'])
                 system_data.t_equil = float(values['-T_equil-'])
-                system_data.e_begin, system_data.e_end, system_data.e_step = float(values['-E_begin-']), float(values['-E_end-']), float(values['-E_stop-'])
+                system_data.e_begin, system_data.e_end, system_data.e_step = float(values['-E_begin-']), float(values['-E_end-']), float(values['-E_step-'])
                 system_data.amplitude = float(values['-Amp-'])
                 system_data.frequencies =  [float(values['-Freq_1-']), float(values['-Freq_2-']), float(values['-Freq_3-'])]
                 system_data.t_dep = system_data.step_volume / (system_data.flow_rate*system_data.flowrate_conversion) #s/measurement

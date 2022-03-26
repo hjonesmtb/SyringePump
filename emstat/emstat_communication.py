@@ -121,7 +121,7 @@ class Emstat:
         self.emstat_ready("L")
         self.sendData(L_command)
 
-        starttime = time.time()
+        starttime = self.system_data.start_time
         time_log = []
 
         if n_channels > 1:
@@ -167,7 +167,7 @@ class Emstat:
                 underload_dep.append(current_underload)
                 time_log.append(time.time()-starttime)
                 print(potential, current)
-                self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
+            self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
         return
 
     '''Sends a key(c or L) to the emstat, waits until the key is returned to make sure
@@ -247,6 +247,7 @@ class Emstat:
         current_swv = [] #array to store current from swv for this run
         overload_swv = [] #array to store overload from swv for this run
         underload_swv = [] #array to store underload from swv for this run
+        time_swv = []
         T_data = [] #string array to store T packages from measurement (during steady state)
         U_data = [] #string array to store U packages from measurement (during SWV)
         self.sendData("J") # disables idle packages
@@ -300,8 +301,9 @@ class Emstat:
                 current_swv.append(current)
                 overload_swv.append(current_overload)
                 underload_swv.append(current_underload)
+                time_swv.append(time.time()- self.system_data.start_time)
                 print("swv", potential, current)
-                self.system_data.write_swv(potential_swv, current_swv, overload_swv, underload_swv)
+            self.system_data.write_swv(time_swv, potential_swv, current_swv, overload_swv, underload_swv)
             print("measurement complete")
         except Exception as e:
             print("Process terminated")
