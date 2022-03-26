@@ -25,7 +25,7 @@ v_range = 3 #specific to emstat3
 
 
 class Emstat:
-    def __init__(self, pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequency, system_data):
+    def __init__(self, pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequencies, system_data):
         try:
             #self.ser = serial.Serial('COM{}'.format(pstat_com), baudrate=230400, timeout = 1)
             self.ser = serial.Serial(str(pstat_com), baudrate=230400, timeout = 1)
@@ -38,14 +38,14 @@ class Emstat:
                     print("port opened successfully")
             except:
                 print("COM port is not available")
-        self.swv_params = self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequency, e_cond, t_cond)
+        self.swv_params = self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequencies, e_cond, t_cond)
         self.deposition_potential = e_dep
         self.system_data = system_data
 
     @classmethod
     def from_parameters(cls, system_data):
 
-        return cls(system_data.pstat_com, system_data.e_cond, system_data.t_cond, system_data.e_dep, system_data.t_dep, system_data.t_equil, system_data.e_begin, system_data.e_end, system_data.e_step, system_data.amplitude, system_data.frequency, system_data)
+        return cls(system_data.pstat_com, system_data.e_cond, system_data.t_cond, system_data.e_dep, system_data.t_dep, system_data.t_equil, system_data.e_begin, system_data.e_end, system_data.e_step, system_data.amplitude, system_data.frequencies, system_data)
 
     def sendData(self, string):
         self.ser.write(string.encode('ascii'))
@@ -317,10 +317,10 @@ class Emstat:
         #n_points
         nPoints = int((e_end - e_begin) / e_step + 1)
         #t_meas, d1, d16, nadmean, tPulse
-        t_meas = 1/(6*freq) #p. 23 com protocol
+        t_meas = 1/(6*freq[0]) #p. 23 com protocol
         nadmean, d1, d16 = self.d1_d16_calc(t_meas)
         t_meas_actual = 2**nadmean * (0.222 + d1 * 0.0076 + d16 * 0.0005) / 1000
-        tPulse = int((1 / (2 * freq) - t_meas_actual) / 0.0000152)
+        tPulse = int((1 / (2 * freq[0]) - t_meas_actual) / 0.0000152)
         #potentials
         Econd = self.potential_to_cmd(e_cond)
         Edep = self.potential_to_cmd(0)
@@ -328,7 +328,7 @@ class Emstat:
         Estep = int(e_step * 10000) 
         Epulse = int(amplitude * 10000)
         #tInt
-        tInt = self.tint_calc(freq)
+        tInt = self.tint_calc(freq[0])
         #format ascii command
         L_command = ("technique={}\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
         {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstep={}\nEpulse={}\nnPoints= \

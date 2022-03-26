@@ -131,7 +131,6 @@ def cyclic_format():
 def pump_format():
     pump_parameters = [
             [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
-
             [sg.Text('Time [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(120, key='-T_dep-')],
             ]
     return pump_parameters
@@ -141,7 +140,6 @@ def chronoamp_format():
     chrono_parameters = [
             [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name, key=('-TestName-'))],
             [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
-
             [sg.Text('E deposition [V]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.e_dep, key='-E_dep-')],
             [sg.Text('t equilibration [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_equil, key='-T_equil-')],
             [sg.Text('t deposition [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.t_dep, key='-T_dep-')],
@@ -240,8 +238,6 @@ def parameter_window_process():
             if system_data.test_type == 'Chronoamperometry':
                 print(event, values)
                 system_data.test_name = values['-TestName-']
-                system_data.n_measurements = values['-NMeasurements-']
-                system_data.step_volume = float(values['-StepVolume-'])/1000
                 system_data.flow_rate = values['-FlowRate-']
                 system_data.t_equil = float(values['-T_equil-'])
                 system_data.e_dep = float(values['-E_dep-'])
@@ -267,7 +263,7 @@ def connect_to_pstat():
     return Emstat.from_parameters(system_data)
     #return Emstat(system_data.["pstat_com"], system_data.["e_cond"], system_data.["t_cond"], system_data.["e_dep"], system_data.["t_dep"], system_data.["t_equil"], system_data.["e_begin"], system_data.["e_end"], system_data.["e_step"], system_data.["amplitude"], system_data.["frequency"])
 
-def conduct_measurements(pstat, pump, window, axswv, axdep, fig_agg, data_folder):
+def conduct_measurements(pstat, pump, window):
     #data_queue = queue.Queue()
     #thread = threading.Thread(target=take_measurement(data_queue, pump, pstat))
     #thread.start()
@@ -284,7 +280,7 @@ def conduct_measurements(pstat, pump, window, axswv, axdep, fig_agg, data_folder
     elif system_data.test_type == 'Pump':
         pump_fluid(pump, window)
     elif system_data.test_type == 'Chronoamperometry':
-        chrono_measurements(pstat, pump, window, fig_agg, data_folder)
+        chrono_measurements(pstat, pump, window)
 
 def cyclic_measurements(pstat, pump, window, ax, fig_agg, data_folder):
         pump.infuse()
@@ -297,8 +293,14 @@ def pump_fluid(pump, window):
         pump.stop()
         return
 
-def chrono_measurements(pstat, pump, window, ax, fig_agg, data_folder):
-        return
+def chrono_measurements(pstat, pump, window):
+    pump.infuse()
+    pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
+    pump.stop()
+    system_data.plot_data()
+    system_data.save_data()
+    window.read(10)
+    return
         
 def stop_flow_measurements(pstat, pump, window):
       while True:

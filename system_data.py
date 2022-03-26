@@ -131,7 +131,8 @@ class System_Data:
         self.overload_swv = over
         self.underload_swv = under
 
-    def write_dep(self, pot, cur, over, under):
+    def write_dep(self,time,  pot, cur, over, under):
+        self.time = time
         self.potential_dep = pot
         self.current_dep = cur
         self.overload_dep = over
@@ -202,7 +203,7 @@ class System_Data:
         return system_data
 
     def plot_data(self):
-        cmap = cm.get_cmap('color', int(10))
+        cmap = cm.get_cmap('Dark2', int(10))
         colour = cmap(self.measurements % self.n_measurements / 10)
         if self.test_type == 'Stop-Flow':
             self.ax_dep.plot(self.potential_dep,self.time, color = colour)
