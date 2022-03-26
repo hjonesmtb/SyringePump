@@ -264,14 +264,49 @@ def connect_to_pstat():
     #return Emstat(system_data.["pstat_com"], system_data.["e_cond"], system_data.["t_cond"], system_data.["e_dep"], system_data.["t_dep"], system_data.["t_equil"], system_data.["e_begin"], system_data.["e_end"], system_data.["e_step"], system_data.["amplitude"], system_data.["frequency"])
 
 def conduct_measurements(pstat, pump, window):
+    first = True
+    while True:
+        event, values = window.read(10)
+        
+        print(event, system_data.measurements)
+        system_data.plot_data()   
+        if(event == '-OPERATION DONE-' or first):
+            window.perform_long_operation(lambda :
+                                          measurement_threader(pump, pstat),
+                                          '-OPERATION DONE-')
+            if not first:
+                system_data.save_data()
+                system_data.reset_measurement_arrays()
+            system_data.measurements += 1
+            first = False
+
+        if(system_data.measurements >= system_data.n_measurements):
+            pump.stop()
+            pump.close()
+            pstat.close()
+            break
+             
+
+def measurement_threader(pstat, pump):
     if system_data.test_type == 'Stop-Flow':
-        stop_flow_measurements(pstat, pump, window)
-    elif system_data.test_type == 'Cyclic voltammetry':
-        cyclic_measurements(pstat, pump, window)
-    elif system_data.test_type == 'Pump':
-        pump_fluid(pump, window)
+        stop_flow(pstat, pump)
+    # elif system_data.test_type == 'Cyclic voltammetry':
+    #     cyclic_measurements(pstat, pump)
+    # elif system_data.test_type == 'Pump':
+    #     pump_fluid(pump, window)
     elif system_data.test_type == 'Chronoamperometry':
-        chrono_measurements(pstat, pump, window)
+        chrono(pstat, pump)
+
+def stop_flow(pump, pstat):
+    pump.infuse()
+    pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
+    pump.stop()
+    pstat.sweepSWV()
+
+def chrono(pump, pstat):
+    pump.infuse()
+    pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
+    pump.stop()
 
 def stop_flow_measurements(pstat, pump, window):
     #start pump, output current
@@ -281,7 +316,7 @@ def stop_flow_measurements(pstat, pump, window):
 
     #Step 1:Start pumping fluid until the user chooses to turn the valve
     window.perform_long_operation(lambda :
-                                          pstat.deposition(self.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1]),
+                                          pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1]),
                                           '-INITIAL_DONE-') #Depose for 4 minutes and plot data. Wait until user hits load sample.
     while True: #Loop to start pumping and get user to turn valve
         event, values = window.read(10)
@@ -297,7 +332,7 @@ def stop_flow_measurements(pstat, pump, window):
                 window.read(10)
             window['-TEST_STATUS-'].update('Turn Sample Valve')
             window.read(10)
-            system_data.inject_time = time.time() - start_time
+            system_data.inject_time = time.time() - system_data.start_time
             system_data.valve_turned = True
             break
         if event in ('INITIAL_DONE'):
@@ -311,6 +346,7 @@ def stop_flow_measurements(pstat, pump, window):
     #Step 2: Once valve is turned, cycle through deposition and swv measurements
     while True:
         system_data.measurements += 1
+        print("m:" + str(system_data.measurements))
         window['-TEST_STATUS-'].update('Squarewave Measurement Running')
 
         #Step 2a: Deposition
@@ -320,6 +356,7 @@ def stop_flow_measurements(pstat, pump, window):
                                               pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1]),
                                               '-DEPOSITION_DONE-') #Deposition.
         while True: #Loop for deposition
+            print("stuck" + str(system_data.measurements))
             event, values = window.read(10)
             system_data.plot_data()
             window['-TEST_TIME-'].update('Test time since valve turned: {}'.format(round(time.time()-system_data.inject_time)))
@@ -336,6 +373,7 @@ def stop_flow_measurements(pstat, pump, window):
                                               pstat.sweepSWV(),
                                               '-SWV_DONE-') #SWV.
         while True: #Loop for swv
+            print("stuckswv" + str(system_data.measurements))
             event, values = window.read(10)
             system_data.plot_data()
             window['-TEST_TIME-'].update('Test time since valve turned: {}'.format(round(time.time()-system_data.inject_time)))
@@ -376,7 +414,7 @@ def chrono_measurements(pstat, pump, window):
 
     #Step 1:Start pumping fluid until the user chooses to turn the valve
     window.perform_long_operation(lambda :
-                                          pstat.deposition(self.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1]),
+                                          pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1]),
                                           '-INITIAL_DONE-') #Depose for 4 minutes and plot data. Wait until user hits load sample.
     while True: #Loop to start pumping and get user to turn valve
         window['-TEST_TIME-'].update('Pumping time: {}'.format(round(time.time()-system_data.start_time)))
@@ -391,7 +429,7 @@ def chrono_measurements(pstat, pump, window):
                 window.read(10)
             window['-TEST_STATUS-'].update('Turn Sample Valve')
             window.read(10)
-            system_data.inject_time = time.time() - start_time
+            system_data.inject_time = time.time() - system_data.start_time
             system_data.valve_turned = True
             break
         if event in ('INITIAL_DONE'):
@@ -425,7 +463,7 @@ def chrono_measurements(pstat, pump, window):
 
 '''Checks if the Stop button has been pressed. If so, returns to main GUI window'''
 def check_for_stop(pstat, pump, window, event):
-    if event in ('Stop', none):
+    if event in ('Stop', None):
         system_data.stop_pstat = True
         pump.stop()
         restart(pstat, pump, window)
@@ -465,6 +503,7 @@ def main():
     #Step 4:
     pstat = connect_to_pstat()
     #Step 5:
+
     conduct_measurements(pstat, pump, window)
 
    #Keeps measurement window open until closed

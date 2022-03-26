@@ -121,9 +121,7 @@ class Emstat:
         self.emstat_ready("L")
         self.sendData(L_command)
 
-        starttime = self.system_data.start_time
-        time_log = []
-
+       
         if n_channels > 1:
             P_data = []
             char = self.readData(1).decode()
@@ -140,12 +138,13 @@ class Emstat:
                 if len(package) != 8*n_channels: #Check to make sure packages are the right length
                     raise ValueError('P package not 8*n_channels characters')
                 P_data.append(package)
-                time_log.append(time.time()-starttime)
+                #time_log.append(time.time()-starttime)
         else:
             potential_dep = [] #array to store potential from deposition for this run
             current_dep = [] #array to store current from deposition for this run
             overload_dep = [] #array to store overload from deposition for this run
             underload_dep = [] #array to store underload from deposition for this run
+            time_log = []
             U_data = []
             char = self.readData(1).decode()
             while char != 'U': #Write Skip bytes until first P is read
@@ -166,14 +165,15 @@ class Emstat:
                 #print(package)
                 if len(package) != 16: #Check to make sure packages are the right length
                     raise ValueError('U package not 16 characters')
+                time_log.append(time.time()-self.system_data.start_time)
+                print("wrote to time")
                 potential, current, current_overload, current_underload = self.process_U(package)
                 potential_dep.append(potential)
                 current_dep.append(current)
+                print("wrote to current")
                 overload_dep.append(current_overload)
                 underload_dep.append(current_underload)
-                time_now = time.time()-starttime
-                time_log.append(time_now)
-                print(potential, current)
+                print("dep", potential, current)
                 self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
         return
 

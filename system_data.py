@@ -19,8 +19,8 @@ TEST_TYPES = ["Stop-Flow", "Chronoamperometry", "Cyclic Voltametry"]
 DATE = datetime.now().strftime("%y-%m-%d_%H%M")
 TEST_NAME = TEST_TYPES[0]+ "_" + DATE
 PUMP_BAUD = 1200
-PUMP_COM = "COM3"
-PSTAT_COM = "COM4"
+PUMP_COM = "COM7"
+PSTAT_COM = "COM6"
 E_CONDITION = 0  # V
 T_CONDITION = 0  # s
 E_DEPOSITION = 0.8  # V
@@ -136,6 +136,8 @@ class System_Data:
         return
 
     def write_swv(self,time, pot, cur, over, under):
+        print("current:", len(cur))
+        print("time:", len(time))
         self.time.append(time[-1])
         self.potential_swv = pot
         self.current_swv = cur
@@ -145,6 +147,8 @@ class System_Data:
         self.total_current.append(cur[-1])
 
     def write_dep(self, time, pot, cur, over, under):
+        print("current_dep:", len(cur))
+        print("time_dep:", len(time))
         self.time_dep = time
         self.time.append(time[-1])#get last element to stop duplicate values in data
         self.potential_dep = pot
@@ -219,6 +223,8 @@ class System_Data:
         cmap = cm.get_cmap('Dark2', int(10))
         colour = cmap(self.measurements % self.n_measurements / 10)
         if self.test_type == 'Stop-Flow':
+            print(self.time_dep)
+            print(self.current_dep)
             self.ax_dep.plot(self.time_dep,self.current_dep, color = colour)
             self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
             self.ax_swv.plot(self.potential_swv,self.current_swv, color = colour)
@@ -278,6 +284,18 @@ class System_Data:
         else:
             print("No Plot Initialized")
         self.draw_figure()
+
+    def reset_measurement_arrays(self):
+        self.current_swv = [0]
+        self.potential_swv = [0]
+        self.overload_swv = [0]
+        self.underload_swv = [0]
+        self.current_dep = [0]
+        self.potential_dep = [0]
+        self.overload_dep = [0]
+        self.underload_dep = [0]
+        self.time_dep = [0]
+
 
 def pad_dict_list(dict_list, pad_val):
     lmax = 0
