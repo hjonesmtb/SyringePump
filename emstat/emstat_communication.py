@@ -26,6 +26,7 @@ v_range = 3 #specific to emstat3
 
 class Emstat:
     def __init__(self, pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequencies, system_data):
+        print(frequencies)
         try:
             #self.ser = serial.Serial('COM{}'.format(pstat_com), baudrate=230400, timeout = 1)
             self.ser = serial.Serial(str(pstat_com), baudrate=230400, timeout = 1)
