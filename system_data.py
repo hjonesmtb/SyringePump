@@ -130,14 +130,10 @@ class System_Data:
             self.n_electrodes = data_dict["n_electrodes"]
 
         self.path = PATH + '\data'
-        #fix naming of folder
         self.data_folder = os.path.join(self.path, self.test_name)
-
         return
 
     def write_swv(self,time, pot, cur, over, under):
-        print("current:", len(cur))
-        print("time:", len(time))
         self.time.append(time[-1])
         self.potential_swv = pot
         self.current_swv = cur
@@ -147,8 +143,6 @@ class System_Data:
         self.total_current.append(cur[-1])
 
     def write_dep(self, time, pot, cur, over, under):
-        print("current_dep:", len(cur))
-        print("time_dep:", len(time))
         self.time_dep = time
         self.time.append(time[-1])#get last element to stop duplicate values in data
         self.potential_dep = pot
@@ -159,33 +153,35 @@ class System_Data:
         self.total_current.append(cur[-1])
 
     def save_data(self):
-        #save the test configuration
+        #create directory if one does not already exist. 
+        #this will always happen when the test is started.
         if not os.path.exists(self.data_folder):
             os.makedirs(self.data_folder)
             os.makedirs(os.path.join(self.data_folder, 'csv'))
-
+        #save the test configuration
         jsonFile = self.data_folder + '/config.json'
         with open(jsonFile, "w") as write_file:
             json.dump(self.encode_system_data(), write_file)
+        
         #save the csv
         total_data = {'Time':self.time, 'Potential':self.total_potential,'Current':self.total_current,}
         total_data = pad_dict_list(total_data, 0)
         data_dict = {'Potential_dep':self.potential_dep, 'Current_dep':self.current_dep,'Potential_SWV':self.potential_swv, 'Current_SWV':self.current_swv,}
         data_dict = pad_dict_list(data_dict, 0)
-
         df = pd.DataFrame(data_dict)
-        df.to_csv(self.data_folder + '/csv/' + str(self.measurements) + '.csv')
+        df.to_csv(self.data_folder + '/csv/' + str(self.measurements) + '.csv', index=False)
         df_t = pd.DataFrame(total_data)
-        df_t.to_csv(self.data_folder + '/csv/' + '.total.csv')
+        df_t.to_csv(self.data_folder + '/csv/' + str(self.inject_time) + '_total.csv', index=False)
         return
 
-    #creates dictionary to be JSON serialized from all the given data
+    #creates dictionary from system parameters to be JSON serialized.
     def encode_system_data(self):
         if isinstance(self, System_Data):
             data_dict = {
             "__System_Data__": True,
             "test_name" : self.test_name,
             "test_type" : self.test_type,
+            "Inject_time": self.inject_time,
             "flow_rate" : self.flow_rate,
             "infusion_volume" : self.infusion_volume,
             "e_cond" : self.e_cond,
@@ -220,24 +216,27 @@ class System_Data:
         return system_data
 
     def plot_data(self):
-        cmap = cm.get_cmap('Dark2', int(10))
+        cmap = cm.get_cmap('rainbow', int(10))
         colour = cmap(self.measurements % self.n_measurements / 10)
         if self.test_type == 'Stop-Flow':
             length = get_min_length(self.time_dep, self.current_dep)
-            self.ax_dep.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
-            self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
+            if(length >1):
+                self.ax_dep.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
+           # self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
             length = get_min_length(self.potential_swv, self.current_swv)
-            self.ax_swv.plot(self.potential_swv[0:length-1],self.current_swv[0:length-1], color = colour)
+            if(length >1):
+                self.ax_swv.plot(self.potential_swv[0:length-1],self.current_swv[0:length-1], color = colour)
             self.fig_agg.draw()
         elif self.test_type == 'Cyclic voltammetry':
             length = get_min_length(self.potential_dep, self.current_dep)
-            self.ax_cyclic.plot(self.potential_dep[0:length-1],self.current_dep[0:length-1], color = colour)
+            if(length >1):
+                self.ax_cyclic.plot(self.potential_dep[0:length-1],self.current_dep[0:length-1], color = colour)
             self.fig_agg.draw()
         elif self.test_type == 'Chronoamperometry':
             length = get_min_length(self.time_dep, self.current_dep)
-            self.ax_dep.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
+            if(length >1):
+                self.ax_dep.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
             self.fig_agg.draw()
-
         return
 
     def update_test_name(self):
@@ -250,12 +249,12 @@ class System_Data:
         figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
         self.fig_agg = figure_canvas_agg
 
+    #draw the initial plot in the window
     def Initialize_Plots(self, window):
         canvas_elem = window['-PLOT-']
         self.canvas = canvas_elem.TKCanvas
 
         if self.test_type == 'Stop-Flow':
-            #draw the initial plot in the window
             self.fig = plt.figure(1, figsize = self.figsize)
             self.fig.clf()
             self.ax_dep = self.fig.add_subplot(121)
@@ -269,7 +268,6 @@ class System_Data:
             self.ax_swv.set_title('Square Wave Current')
             
         elif self.test_type == 'Chronoamperometry':
-            #draw the initial plot in the window
             self.fig = plt.figure(1, figsize = self.figsize)
             self.fig.clf()
             self.ax_chrono = self.fig.add_subplot(111)
@@ -277,7 +275,6 @@ class System_Data:
             self.ax_chrono.set_ylabel('Current (uA)')
 
         elif self.test_type == 'Cyclic Voltammetry':
-            #draw the initial plot in the window
             self.fig = plt.figure(1, figsize = self.figsize)
             self.fig.clf()
             self.ax_cyclic = self.fig.add_subplot(111)
@@ -288,17 +285,19 @@ class System_Data:
         self.draw_figure()
 
     def reset_measurement_arrays(self):
-        self.current_swv = [0]
-        self.potential_swv = [0]
-        self.overload_swv = [0]
-        self.underload_swv = [0]
-        self.current_dep = [0]
-        self.potential_dep = [0]
-        self.overload_dep = [0]
-        self.underload_dep = [0]
-        self.time_dep = [0]
+        self.current_swv = []
+        self.potential_swv = []
+        self.overload_swv = []
+        self.underload_swv = []
+        self.current_dep = []
+        self.potential_dep = []
+        self.overload_dep = []
+        self.underload_dep = []
+        self.time_dep = []
 
-
+'''
+Private helper functions for System data class.
+'''
 def pad_dict_list(dict_list, pad_val):
     lmax = 0
     for lname in dict_list.keys():

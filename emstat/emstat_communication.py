@@ -120,6 +120,7 @@ class Emstat:
 
         self.emstat_ready("L")
         self.sendData(L_command)
+        print(L_command)
 
        
         if n_channels > 1:
@@ -148,17 +149,17 @@ class Emstat:
             U_data = []
             char = self.readData(1).decode()
             while char != 'U': #Write Skip bytes until first P is read
-                if self.check_for_stop():
-                    break
+                # if self.check_for_stop():
+                #     break
                 char = self.readData(1).decode()
             while char != '*': #end condition
-                if self.check_for_stop():
-                    break
+                # if self.check_for_stop():
+                #     break
                 package = ''
                 char = self.readData(1).decode()
                 while char != "U" and char != "*":
-                    if self.check_for_stop():
-                        break
+                    # if self.check_for_stop():
+                    #     break
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
@@ -214,7 +215,7 @@ class Emstat:
 
     #Converts bytes to voltage, current, stage, I status and range, Aux input, for Tpackages
     def process_T(self, T_data):
-        potential = []
+        potential_array = [] #changed from potential to potential_array - Nick
         current_array = []
         noise_array = []
         overload_array = []
@@ -283,8 +284,8 @@ class Emstat:
             skip_T = False
             n = 0
             while True:
-                if self.check_for_stop():
-                    break
+                # if self.check_for_stop():
+                #     break
                 char = self.readData(1).decode()
                 print(char)
                 if n > 200:
@@ -299,13 +300,13 @@ class Emstat:
 
             if not skip_T:
                 while char != 'U': #Write T poackages as long as no U is read
-                    if self.check_for_stop():
-                        break
+                    # if self.check_for_stop():
+                    #     break
                     package = ''
                     char = self.readData(1).decode()
                     while char != "T" and char != "M" and char != "U": #M is the present at the end of the last T-package
-                        if self.check_for_stop():
-                            break
+                        # if self.check_for_stop():
+                        #     break
                         if char != "":
                             package = package + char
                         char = self.readData(1).decode()
@@ -317,13 +318,13 @@ class Emstat:
                     T_data.append(package)
 
             while char != '*': #end condition
-                if self.check_for_stop():
-                    break
+                # if self.check_for_stop():
+                #     break
                 package = ''
                 char = self.readData(1).decode()
                 while char != "U" and char != "*":
-                    if self.check_for_stop():
-                        break
+                    # if self.check_for_stop():
+                    #     break
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
