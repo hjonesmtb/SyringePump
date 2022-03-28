@@ -266,7 +266,7 @@ class System_Data:
             self.ax_swv.set_xlabel('Potential (V)')
             self.ax_swv.set_ylabel('Current (uA)')
             self.ax_swv.set_title('Square Wave Current')
-            
+
         elif self.test_type == 'Chronoamperometry':
             self.fig = plt.figure(1, figsize = self.figsize)
             self.fig.clf()

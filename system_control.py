@@ -269,7 +269,6 @@ def conduct_measurements(pstat, pump, window):
             pump.close()
             pstat.close()
             break
-             
 
 def measurement_threader(pstat, pump, valve_turned):
     if system_data.test_type == 'Stop-Flow':
