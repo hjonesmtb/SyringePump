@@ -136,8 +136,8 @@ class System_Data:
         return
 
     def write_swv(self,time, pot, cur, over, under):
-        print("current:", len(cur))
-        print("time:", len(time))
+        # print("current:", len(cur))
+        # print("time:", len(time))
         self.time.append(time[-1])
         self.potential_swv = pot
         self.current_swv = cur
@@ -147,8 +147,8 @@ class System_Data:
         self.total_current.append(cur[-1])
 
     def write_dep(self, time, pot, cur, over, under):
-        print("current_dep:", len(cur))
-        print("time_dep:", len(time))
+        # print("current_dep:", len(cur))
+        # print("time_dep:", len(time))
         self.time_dep = time
         self.time.append(time[-1])#get last element to stop duplicate values in data
         self.potential_dep = pot
@@ -267,7 +267,7 @@ class System_Data:
             self.ax_swv.set_xlabel('Potential (V)')
             self.ax_swv.set_ylabel('Current (uA)')
             self.ax_swv.set_title('Square Wave Current')
-            
+
         elif self.test_type == 'Chronoamperometry':
             #draw the initial plot in the window
             self.fig = plt.figure(1, figsize = self.figsize)

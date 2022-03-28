@@ -98,7 +98,7 @@ class Emstat:
         zero = self.potential_to_cmd(0) #convert 0V to bytes
         e_constant = self.potential_to_cmd(potential) #convert set potential to bytes
         if n_channels == 1:
-            tInt = 1 #set tInt. Cannot be less than 0.25s if multiplexer present
+            tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
         if n_channels == 2:
             tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
         nPoints = dep_time / tInt #define the number of points
@@ -120,8 +120,10 @@ class Emstat:
 
         self.emstat_ready("L")
         self.sendData(L_command)
+        print(L_command\\
+        "")
 
-       
+
         if n_channels > 1:
             P_data = []
             char = self.readData(1).decode()
@@ -148,17 +150,21 @@ class Emstat:
             U_data = []
             char = self.readData(1).decode()
             while char != 'U': #Write Skip bytes until first P is read
-                if self.check_for_stop():
-                    break
+                print(char)
+                if char == '?':
+                    print('??')
+                # print('stuck U')
+                # if self.check_for_stop():
+                #     break
                 char = self.readData(1).decode()
             while char != '*': #end condition
-                if self.check_for_stop():
-                    break
+                # if self.check_for_stop():
+                #     break
                 package = ''
                 char = self.readData(1).decode()
                 while char != "U" and char != "*":
-                    if self.check_for_stop():
-                        break
+                    # if self.check_for_stop():
+                    #     break
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
@@ -283,8 +289,8 @@ class Emstat:
             skip_T = False
             n = 0
             while True:
-                if self.check_for_stop():
-                    break
+                # if self.check_for_stop():
+                #     break
                 char = self.readData(1).decode()
                 print(char)
                 if n > 200:
@@ -299,13 +305,13 @@ class Emstat:
 
             if not skip_T:
                 while char != 'U': #Write T poackages as long as no U is read
-                    if self.check_for_stop():
-                        break
+                    # if self.check_for_stop():
+                    #     break
                     package = ''
                     char = self.readData(1).decode()
                     while char != "T" and char != "M" and char != "U": #M is the present at the end of the last T-package
-                        if self.check_for_stop():
-                            break
+                        # if self.check_for_stop():
+                        #     break
                         if char != "":
                             package = package + char
                         char = self.readData(1).decode()
@@ -317,13 +323,13 @@ class Emstat:
                     T_data.append(package)
 
             while char != '*': #end condition
-                if self.check_for_stop():
-                    break
+                # if self.check_for_stop():
+                #     break
                 package = ''
                 char = self.readData(1).decode()
                 while char != "U" and char != "*":
-                    if self.check_for_stop():
-                        break
+                    # if self.check_for_stop():
+                    #     break
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
