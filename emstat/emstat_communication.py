@@ -98,7 +98,7 @@ class Emstat:
         zero = self.potential_to_cmd(0) #convert 0V to bytes
         e_constant = self.potential_to_cmd(potential) #convert set potential to bytes
         if n_channels == 1:
-            tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
+            tInt = 1 #set tInt. Cannot be less than 0.25s if multiplexer present
         if n_channels == 2:
             tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
         nPoints = dep_time / tInt #define the number of points
@@ -134,7 +134,7 @@ class Emstat:
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
-                print(package)
+                # print(package)
                 if len(package) != 8*n_channels: #Check to make sure packages are the right length
                     raise ValueError('P package not 8*n_channels characters')
                 P_data.append(package)
@@ -148,33 +148,37 @@ class Emstat:
             U_data = []
             char = self.readData(1).decode()
             while char != 'U': #Write Skip bytes until first P is read
-                # if self.check_for_stop():
-                #     break
+                if char == '?':
+                    print('??')
+                if self.check_for_stop():
+                    break
                 char = self.readData(1).decode()
             while char != '*': #end condition
-                # if self.check_for_stop():
-                #     break
+                if self.check_for_stop():
+                    break
                 package = ''
                 char = self.readData(1).decode()
                 while char != "U" and char != "*":
-                    # if self.check_for_stop():
-                    #     break
+                    if self.check_for_stop():
+                        break
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
                 #print(package)
                 if len(package) != 16: #Check to make sure packages are the right length
                     raise ValueError('U package not 16 characters')
-                time_log.append(time.time()-self.system_data.start_time)
-                print("wrote to time")
-                potential, current, current_overload, current_underload = self.process_U(package)
-                potential_dep.append(potential)
-                current_dep.append(current)
-                print("wrote to current")
-                overload_dep.append(current_overload)
-                underload_dep.append(current_underload)
-                print("dep", potential, current)
-                self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
+                    print('U package not 16 characters')
+                else:
+                    time_log.append(time.time()-self.system_data.start_time)
+                    # print("wrote to time")
+                    potential, current, current_overload, current_underload = self.process_U(package)
+                    potential_dep.append(potential)
+                    current_dep.append(current)
+                    # print("wrote to current")
+                    overload_dep.append(current_overload)
+                    underload_dep.append(current_underload)
+                    # print("dep", potential, current)
+                    self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
         return
 
     '''Sends a key(c or L) to the emstat, waits until the key is returned to make sure
@@ -187,14 +191,15 @@ class Emstat:
         while char != key:
             char = self.readData(1).decode()
             count += 1
-            if count > 30:
-                self.sendData(key) #Try again
+            # if count > 100:
+            #     self.sendData(key) #Try again
         return
 
     '''Checks if pstat needs to stop'''
     def check_for_stop(self):
         if self.system_data.stop_pstat:
             self.end_measurement()
+            self.system_data.stop_pstat = False
             return True
         return False
 
@@ -274,6 +279,10 @@ class Emstat:
         time_swv = []
         T_data = [] #string array to store T packages from measurement (during steady state)
         U_data = [] #string array to store U packages from measurement (during SWV)
+
+        print(self.system_data.n_measurements % 3)
+        # self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequencies, e_cond, t_cond)
+
         self.sendData("J") # disables idle packages
         self.ser.flush() #clears the buffer
         self.ser.read()
@@ -283,8 +292,8 @@ class Emstat:
             skip_T = False
             n = 0
             while True:
-                # if self.check_for_stop():
-                #     break
+                if self.check_for_stop():
+                    break
                 char = self.readData(1).decode()
                 print(char)
                 if n > 200:
@@ -299,13 +308,13 @@ class Emstat:
 
             if not skip_T:
                 while char != 'U': #Write T poackages as long as no U is read
-                    # if self.check_for_stop():
-                    #     break
+                    if self.check_for_stop():
+                        break
                     package = ''
                     char = self.readData(1).decode()
                     while char != "T" and char != "M" and char != "U": #M is the present at the end of the last T-package
-                        # if self.check_for_stop():
-                        #     break
+                        if self.check_for_stop():
+                            break
                         if char != "":
                             package = package + char
                         char = self.readData(1).decode()
@@ -317,13 +326,13 @@ class Emstat:
                     T_data.append(package)
 
             while char != '*': #end condition
-                # if self.check_for_stop():
-                #     break
+                if self.check_for_stop():
+                    break
                 package = ''
                 char = self.readData(1).decode()
                 while char != "U" and char != "*":
-                    # if self.check_for_stop():
-                    #     break
+                    if self.check_for_stop():
+                        break
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
