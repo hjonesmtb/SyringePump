@@ -274,12 +274,12 @@ def conduct_measurements(pstat, pump, window):
             window.perform_long_operation(lambda :
                                           measurement_threader(pump, pstat),
                                           '-OPERATION DONE-')
-            if not first:
+            if system_data.valve_turned:
                 system_data.save_data()
-                system_data.reset_measurement_arrays()
-            system_data.measurements += 1
+                system_data.measurements += 1
             first = False
-
+        if(event == '-START-' and not system_data.valve_turned):
+            injection_countdown(event,window)
         if(system_data.measurements >= system_data.n_measurements):
             pump.stop()
             pump.close()
@@ -300,8 +300,24 @@ def measurement_threader(pstat, pump):
 def stop_flow(pump, pstat):
     pump.infuse()
     pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
-    pump.stop()
-    pstat.sweepSWV()
+    if(system_data.valve_turned):
+        print("swv test")
+        pump.stop()
+        pstat.sweepSWV() 
+    
+def injection_countdown(event, window):
+    #  if event in ('-START-', None):
+    system_data.stop_pstat = True #Send flag to pstat to stop measurement
+
+    #counts down for user to turn valve
+    countdown_start = time.time()
+    while time.time() - countdown_start < 5:
+        window['-TEST_STATUS-'].update('Load Sample in {} seconds'.format(5 - round(time.time() - countdown_start)))
+        window.read(10)
+    window['-TEST_STATUS-'].update('Turn Sample Valve')
+    window.read(10)
+    system_data.inject_time = time.time() - system_data.start_time
+    system_data.valve_turned = True
 
 def chrono(pump, pstat):
     pump.infuse()
@@ -503,7 +519,6 @@ def main():
     #Step 4:
     pstat = connect_to_pstat()
     #Step 5:
-
     conduct_measurements(pstat, pump, window)
 
    #Keeps measurement window open until closed

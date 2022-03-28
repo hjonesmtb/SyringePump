@@ -223,17 +223,19 @@ class System_Data:
         cmap = cm.get_cmap('Dark2', int(10))
         colour = cmap(self.measurements % self.n_measurements / 10)
         if self.test_type == 'Stop-Flow':
-            print(self.time_dep)
-            print(self.current_dep)
-            self.ax_dep.plot(self.time_dep,self.current_dep, color = colour)
+            length = get_min_length(self.time_dep, self.current_dep)
+            self.ax_dep.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
             self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
-            self.ax_swv.plot(self.potential_swv,self.current_swv, color = colour)
+            length = get_min_length(self.potential_swv, self.current_swv)
+            self.ax_swv.plot(self.potential_swv[0:length-1],self.current_swv[0:length-1], color = colour)
             self.fig_agg.draw()
         elif self.test_type == 'Cyclic voltammetry':
-            self.ax_cyclic.plot(self.potential_dep,self.current_dep, color = colour)
+            length = get_min_length(self.potential_dep, self.current_dep)
+            self.ax_cyclic.plot(self.potential_dep[0:length-1],self.current_dep[0:length-1], color = colour)
             self.fig_agg.draw()
         elif self.test_type == 'Chronoamperometry':
-            self.ax_chrono.plot(self.time_dep, self.current_dep, color = colour)
+            length = get_min_length(self.time_dep, self.current_dep)
+            self.ax_dep.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
             self.fig_agg.draw()
 
         return
@@ -306,3 +308,6 @@ def pad_dict_list(dict_list, pad_val):
         if  ll < lmax:
             dict_list[lname] += [pad_val] * (lmax - ll)
     return dict_list
+
+def get_min_length(array1, array2):
+    return min(len(array1), len(array2))
