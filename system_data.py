@@ -1,3 +1,4 @@
+from cProfile import label
 from datetime import datetime
 import json
 from typing import Type
@@ -38,13 +39,15 @@ T_DEPOSITION = INFUSION_VOLUME / N_MEASUREMENTS / (FLOW_RATE * FLOWRATE_CONVERSI
 STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
 FIGSIZE = (20,6)
 PATH = os.getcwd()
-PUMP_SCALE = 5 #cuts off first few points of the first deposition during stop flow.
+PUMP_SCALE = 20 #cuts off first few points of the first deposition during stop flow.
+MAX_PLOTS = 5
+INITIAL_PUMP_TIME = 240
 
 
 class System_Data:
     def __init__(self, data_dict = None):
         #loads default values
-        self.initial_pump_time = 240 #initial pumping time
+        self.initial_pump_time = INITIAL_PUMP_TIME #initial pumping time
         self.start_time = 0 #Time user first hits start button
         self.time_end = 0 #Time the measurement ends
         self.stop_pstat = False
@@ -80,6 +83,9 @@ class System_Data:
         self.ax_swv = []
         self.ax_cyclic = []
         self.ax_chrono = []
+        self.line_dep = []
+        self.line_swv = []
+
         self.fig_agg = None
         self.fig = None
         self.canvas = None
@@ -225,13 +231,18 @@ class System_Data:
                 self.ax_dep.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
             if(length > PUMP_SCALE and not self.valve_turned):
                 self.ax_dep.cla()
+                self.ax_dep.set_xlabel('Time(s)')
+                self.ax_dep.set_ylabel('Current (uA)')
+                self.ax_dep.set_title('Deposition Current')
                 self.ax_dep.plot(self.time_dep[PUMP_SCALE-1:length-1],self.current_dep[PUMP_SCALE-1:length-1], color = colour)
                 #self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
             length = get_min_length(self.potential_swv, self.current_swv)
             if(length >1):
-                self.ax_swv.plot(self.potential_swv[0:length-1],self.current_swv[0:length-1], color = colour)
-                self.ax_swv.legend()
+                self.ax_swv.plot(self.potential_swv[0:length-1],self.current_swv[0:length-1], color = colour, label=str(self.measurements+1))
+                legend_without_duplicate_labels(self.ax_swv)
+
             self.fig_agg.draw()
+
 
         elif self.test_type == 'Cyclic voltammetry':
             length = get_min_length(self.potential_dep, self.current_dep)
@@ -241,8 +252,8 @@ class System_Data:
         elif self.test_type == 'Chronoamperometry':
             length = get_min_length(self.time_dep, self.current_dep)
             if(length >1):
-                self.ax_dep.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
-                self.ax_dep.legend()
+                self.ax_chrono.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
+                
             self.fig_agg.draw()
         return
 
@@ -273,6 +284,7 @@ class System_Data:
             self.ax_swv.set_xlabel('Potential (V)')
             self.ax_swv.set_ylabel('Current (uA)')
             self.ax_swv.set_title('Square Wave Current')
+            
 
         elif self.test_type == 'Chronoamperometry':
             self.fig = plt.figure(1, figsize = self.figsize)
@@ -317,3 +329,8 @@ def pad_dict_list(dict_list, pad_val):
 
 def get_min_length(array1, array2):
     return min(len(array1), len(array2))
+
+def legend_without_duplicate_labels(ax):
+    handles, labels = ax.get_legend_handles_labels()
+    unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
+    ax.legend(*zip(*unique))

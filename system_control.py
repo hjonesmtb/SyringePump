@@ -34,13 +34,12 @@ CONFIG_FILE = './config.json'
 
 #System_Data class is initialized with default values.
 #This class will hold the data read from the potentiostat for generating plots and saving to a .csv
-system_data = System_Data()
 
 #can be loaded from a custom config file.
 #system_data = System_Data.load_system_data_from_json(CONFIG_FILE)
 
 #boiler plate code for USB port selection page.
-def test_settings_window():
+def test_settings_window(system_data):
 
     #creates a list of the names of all current usb devices.
     usbs = list_ports.comports()
@@ -48,13 +47,13 @@ def test_settings_window():
     for usb in usbs:
         port_name.append(usb.name)
 
-    layout = test_settings_gui_format(usbs, port_name)
+    layout = test_settings_gui_format(usbs, port_name, system_data)
 
     # create the form and show it without the plot
     window = sg.Window('Test Settings', layout, finalize=True, resizable=True)
     return window
 
-def test_settings_gui_format(usbs, port_name):
+def test_settings_gui_format(usbs, port_name, system_data):
     layout =[
             [sg.Text('Test Settings', size=(40, 1),justification='left', font='Helvetica 20')],
             [sg.Text('Test Type', size=(20, 1), font='Helvetica 12'), sg.Combo(system_data.test_types, size=(20,1),default_value=system_data.test_type,key=('-TestType-'))],
@@ -69,27 +68,27 @@ def test_settings_gui_format(usbs, port_name):
     return layout
 
 #boiler plate code for entering parameters
-def control_windows():
-    layout = parameters_Format()
+def control_windows(system_data):
+    layout = parameters_Format(system_data)
     window = sg.Window('Start Screen', layout, finalize=True, resizable=True)
     system_data.Initialize_Plots(window)
     window.Maximize()
     return window
 
-def voltammetry_gui_format():
+def voltammetry_gui_format(system_data):
     layout = []
     if(system_data.test_type == 'Stop-Flow'):
-        layout = swv_format()
+        layout = swv_format(system_data)
     if(system_data.test_type == 'Chronoamperometry'):
-        layout = chronoamp_format()
+        layout = chronoamp_format(system_data)
     if(system_data.test_type == 'Cyclic Voltammetry'):
-        layout = cyclic_format()
+        layout = cyclic_format(system_data)
     if(system_data.test_type == 'Pump'):
-        layout = pump_format()
+        layout = pump_format(system_data)
     return layout
 
 
-def swv_format():
+def swv_format(system_data):
     swv_parameters = [
             [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name, key=('-TestName-'))],
             [sg.Text('Stop', size=(15, 1), font='Helvetica 14')],
@@ -111,11 +110,11 @@ def swv_format():
             ]
     return swv_parameters
 
-def cyclic_format():
+def cyclic_format(system_data):
     print("Cyclic is not supported")
     return []
 
-def pump_format():
+def pump_format(system_data):
     pump_parameters = [
             [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
             [sg.Text('Time [s]', size=(15, 1), font='Helvetica 12'), sg.InputText(120, key='-T_dep-')],
@@ -123,7 +122,7 @@ def pump_format():
     return pump_parameters
 
 
-def chronoamp_format():
+def chronoamp_format(system_data):
     chrono_parameters = [
             [sg.Text('Test Name', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.test_name, key=('-TestName-'))],
             [sg.Text('Flow rate [uL/min]', size=(15, 1), font='Helvetica 12'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
@@ -133,8 +132,8 @@ def chronoamp_format():
             ]
     return chrono_parameters
 
-def parameters_Format():
-    V_parameters = voltammetry_gui_format()
+def parameters_Format(system_data):
+    V_parameters = voltammetry_gui_format(system_data)
     col1 =[
             [sg.Text(system_data.test_type, size=(20, 1), justification='left', font='Helvetica 20')],
             [sg.T(SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-', text_color='white'), sg.T('Parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
@@ -161,8 +160,8 @@ def collapse(layout, key):
 
 #Opens usb selection window
 #returns pump port, pump baud rate, and potentiostat port.
-def test_setting_process():
-    test_setting_select = test_settings_window()
+def test_setting_process(system_data):
+    test_setting_select = test_settings_window(system_data)
     while True:
         event, values = test_setting_select.read(timeout=10)
 
@@ -177,14 +176,14 @@ def test_setting_process():
 
     test_setting_select.close()
 
-def parameter_window_process():
+def parameter_window_process(system_data):
     #value for tracking the state of the collapsable window being expanded or not.
     is_expanded = True
     #boolean value allows for test to be changed.
     new_parameters = True
 
     #GUI Window is created
-    window = control_windows()
+    window = control_windows(system_data)
 
     # Enter measurement parameters and start pumping
     while True:
@@ -227,12 +226,13 @@ def parameter_window_process():
                 system_data.t_equil = float(values['-T_equil-'])
                 system_data.e_dep = float(values['-E_dep-'])
                 system_data.t_dep = float(values['-T_dep-']) #s/measurement
+                system_data.n_measurements = 1
                 new_parameters = False
                 break
 
     return window, new_parameters
 
-def connect_to_pump():
+def connect_to_pump(system_data):
     pump = Pump.from_parameters(system_data)
     pump.set_diameter(system_data.syringe_diam) # Fixed syringe diameter
     pump.set_rate(system_data.flow_rate,'uL/min')
@@ -241,10 +241,10 @@ def connect_to_pump():
     pump.reset_acc() # reset accumulated volume to zero
     return pump
 
-def connect_to_pstat():
+def connect_to_pstat(system_data):
     return Emstat.from_parameters(system_data)
 
-def conduct_measurements(pstat, pump, window):
+def conduct_measurements(pstat, pump, window, system_data):
     first = True
     system_data.start_time = time.time()
     window['-START-'].update('Load Sample')
@@ -255,29 +255,26 @@ def conduct_measurements(pstat, pump, window):
         if(event != '__TIMEOUT__'):
             print(event, system_data.measurements)
         if(event == '-OPERATION DONE-' or first):
-            window.perform_long_operation(lambda : measurement_threader(pump, pstat, system_data.valve_turned), '-OPERATION DONE-')
+            window.perform_long_operation(lambda : measurement_threader(pump, pstat, system_data.valve_turned, system_data), '-OPERATION DONE-')
             first = False
         if(event == '-START-' and not system_data.valve_turned):
             system_data.stop_pstat = True
             system_data.inject_time = time.time() - system_data.start_time
             system_data.valve_turned = True
 
-        if check_for_stop(pstat, pump, window, event):
+        if check_for_stop(pstat, pump, window, event, system_data):
             break
 
         system_data.plot_data()
         if(system_data.measurements >= system_data.n_measurements):
-            pump.stop()
-            pump.close()
-            pstat.close()
             break
 
-def measurement_threader(pstat, pump, valve_turned):
+def measurement_threader(pstat, pump, valve_turned, system_data):
     if system_data.test_type == 'Stop-Flow':
-        stop_flow(pstat, pump, valve_turned)
+        stop_flow(pstat, pump, valve_turned, system_data)
 
     elif system_data.test_type == 'Chronoamperometry':
-        chrono(pstat, pump, valve_turned)
+        chrono(pstat, pump, valve_turned, system_data)
 
     elif system_data.test_type == 'Cyclic voltammetry':
         print("Operation Not Supported")
@@ -292,7 +289,7 @@ def measurement_threader(pstat, pump, valve_turned):
                 system_data.save_data()
                 system_data.reset_measurement_arrays()
 
-def stop_flow(pump, pstat, valve_turned):
+def stop_flow(pump, pstat, valve_turned, system_data):
     if not valve_turned:
         pump.infuse()
         pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1])
@@ -304,18 +301,22 @@ def stop_flow(pump, pstat, valve_turned):
         pump.stop()
         pstat.sweepSWV()
 
-def chrono(pump, pstat, valve_turned):
-    pump.infuse()
-    pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
-    if(valve_turned):
+def chrono(pump, pstat, valve_turned, system_data):
+    if not valve_turned:
+        pump.infuse()
+        pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1])
+
+    if valve_turned:
+        pump.infuse()
+        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
         pump.stop()
+    
 
 '''Checks if the Stop button has been pressed. If so, returns to main GUI window'''
-def check_for_stop(pstat, pump, window, event):
+def check_for_stop(pstat, pump, window, event, system_data):
     if event in ('Stop', None):
         system_data.stop_pstat = True
         pump.stop()
-        restart(pstat, pump, window)
         return True
     return False
 
@@ -344,26 +345,47 @@ def restart(pstat, pump, window):
 def main():
     try:
         new_parameters = True
-        while new_parameters == True:
-    #Step 1: USB ports are selected by user input.
-            test_setting_process()
-    #Step 2: System Parameters are set by user input.
-            window, new_parameters = parameter_window_process()
-    #Step 3:
-        pump = connect_to_pump()
-    #Step 4:
-        pstat = connect_to_pstat()
-    #Step 5:
-        conduct_measurements(pstat, pump, window)
-
-        #Keeps measurement window open until closed
+        exit_app = False
+        stopped = False
+        system_data = System_Data()
         while True:
-            event, values = window.read(timeout=10)
-            if event == sg.WIN_CLOSED or event == 'Stop':
-                pump.stop()
-                pump.close()
-                pstat.close()
+        
+            if(new_parameters):
+                test_setting_process(system_data)
+                window, new_parameters = parameter_window_process(system_data)         
+            else:
+                pump = connect_to_pump(system_data)
+                pstat = connect_to_pstat(system_data)
+                conduct_measurements(pstat, pump, window, system_data)
+                window['-START-'].update('New Test')
+
+                while True:
+                    event, values = window.read(timeout=10)
+                    if event == '-START-':
+                        window.close()
+                        pump.stop()
+                        pump.close()
+                        pstat.close()
+                        new_parameters = True
+                        stopped = False
+                        system_data = System_Data()
+                        break
+                    if event == 'Stop':
+                        if not stopped:
+                            pump.stop()
+                            stopped = True
+
+                    if event == sg.WIN_CLOSED :
+                        window.close()
+                        pump.stop()
+                        pump.close()
+                        pstat.close()
+                        exit_app = True
+                        break
+
+            if exit_app:
                 break
+    
     except KeyboardInterrupt:
         print('Interrupted')
         try:
