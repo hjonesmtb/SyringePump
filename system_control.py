@@ -58,6 +58,8 @@ def test_settings_gui_format(usbs, port_name):
     layout =[
             [sg.Text('Test Settings', size=(40, 1),justification='left', font='Helvetica 20')],
             [sg.Text('Test Type', size=(20, 1), font='Helvetica 12'), sg.Combo(system_data.test_types, size=(20,1),default_value=system_data.test_type,key=('-TestType-'))],
+            
+            # [[sg.T("")], [sg.Text("Choose a config file: "), sg.Input(), sg.FileBrowse(key="-IN-")]],
             [sg.Text('# Electrodes', size=(20, 1), font='Helvetica 12'), sg.InputText(system_data.n_electrodes, key=('-NElectrodes-'))],
             [sg.Text('Syringe Diameter [mm]', size=(20,1), font='Helvetica 12'), sg.InputText(system_data.syringe_diam, key=('-SyringeDiam-'))],
             [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 12'), sg.Combo(port_name, size=(20,1),key=('-PumpPort-'), default_value=[usb.name for usb in usbs if "Prolific" in usb])],
@@ -72,8 +74,8 @@ def test_settings_gui_format(usbs, port_name):
 def control_windows():
     layout = parameters_Format()
     window = sg.Window('Start Screen', layout, finalize=True, resizable=True)
-    window.Maximize()
     system_data.Initialize_Plots(window)
+    window.Maximize()
     return window
 
 def voltammetry_gui_format():
@@ -167,6 +169,9 @@ def test_setting_process():
         event, values = test_setting_select.read(timeout=10)
 
         if event in ('Next', None):
+            # if(values['-IN-'] != ""):
+            #     system_data = System_Data.load_system_data_from_json(values['-IN-'])
+            #     print(system_data.flow_rate)
             system_data.pump_com = values['-PumpPort-']
             system_data.pstat_com = values['-PStatPort-']
             system_data.n_electrodes = values['-NElectrodes-']
@@ -363,6 +368,7 @@ def main():
                 pump.close()
                 pstat.close()
                 break
+    
     except KeyboardInterrupt:
         print('Interrupted')
         try:

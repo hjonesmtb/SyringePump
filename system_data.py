@@ -15,7 +15,7 @@ FLOWRATE_CONVERSION = 1 / 1000 / 60  # 1mL/1000uL*1min/60seconds
 
 # default values
 
-TEST_TYPES = ["Stop-Flow", "Chronoamperometry", "Cyclic Voltametry"]
+TEST_TYPES = ["Stop-Flow", "Chronoamperometry"]
 DATE = datetime.now().strftime("%y-%m-%d_%H%M")
 TEST_NAME = TEST_TYPES[0]+ "_" + DATE
 PUMP_BAUD = 1200
@@ -38,6 +38,7 @@ T_DEPOSITION = INFUSION_VOLUME / N_MEASUREMENTS / (FLOW_RATE * FLOWRATE_CONVERSI
 STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
 FIGSIZE = (20,6)
 PATH = os.getcwd()
+PUMP_SCALE = 5 #cuts off first few points of the first deposition during stop flow.
 
 
 class System_Data:
@@ -51,19 +52,19 @@ class System_Data:
         self.valve_turned = False
         self.measurement_time = 0
         # measurment data
-        self.current_swv = [0]
-        self.potential_swv = [0]
-        self.overload_swv = [0]
-        self.underload_swv = [0]
-        self.current_dep = [0]
-        self.potential_dep = [0]
-        self.overload_dep = [0]
-        self.underload_dep = [0]
-        self.total_potential = [0]
-        self.total_current = [0]
-        self.noise = [0]
-        self.time = [0]
-        self.time_dep = [0]
+        self.current_swv = []
+        self.potential_swv = []
+        self.overload_swv = []
+        self.underload_swv = []
+        self.current_dep = []
+        self.potential_dep = []
+        self.overload_dep = []
+        self.underload_dep = []
+        self.total_potential = []
+        self.total_current = []
+        self.noise = []
+        self.time = []
+        self.time_dep = []
         self.measurements = 0
         # test type
         self.test_types = TEST_TYPES
@@ -222,7 +223,10 @@ class System_Data:
             length = get_min_length(self.time_dep, self.current_dep)
             if(length >1):
                 self.ax_dep.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
-           # self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
+            if(length > PUMP_SCALE and not self.valve_turned):
+                
+                self.ax_dep.plot(self.time_dep[PUMP_SCALE-1:length-1],self.current_dep[PUMP_SCALE-1:length-1], color = colour)
+                #self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
             length = get_min_length(self.potential_swv, self.current_swv)
             if(length >1):
                 self.ax_swv.plot(self.potential_swv[0:length-1],self.current_swv[0:length-1], color = colour)
