@@ -100,12 +100,14 @@ class Emstat:
         zero = self.potential_to_cmd(0) #convert 0V to bytes
         e_constant = self.potential_to_cmd(potential) #convert set potential to bytes
         if n_channels == 1:
-            tInt = 1 #set tInt. Cannot be less than 0.25s if multiplexer present
+            tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
         if n_channels == 2:
             tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
-        nPoints = dep_time / tInt #define the number of points
+        nPoints = dep_time / tInt + 1 #define the number of points
         tmeas = tInt / 2 #defined p. 32 of comm protocol
         nadmean, d1, d16 = self.d1_d16_calc(tmeas)
+
+        tInt = self.tint_calc(tInt)
 
         if n_channels > 1:
             options = 6 #if many electrodes, choose alternating multiplexer
@@ -121,11 +123,26 @@ class Emstat:
         # cr, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
 
         self.emstat_ready("L")
-        L_command = "technique=7\nEbegin=40272\nnPoints=41\ntInt=71369712\nnadmean=7\nd1=5\nd16=1\ncr_min=1\ncr_max=5\ncr=3\nEcond=32768\nEdep=32768\ntCond=0\ntDep=0\ntEquil=0\n\noptions=0"
-
+        # L_command = "technique=7\nEbegin=40272\nnPoints=41\ntInt=71369712\nnadmean=7\nd1=5\nd16=1\ncr_min=1\ncr_max=5\ncr=3\nEcond=32768\nEdep=32768\ntCond=0\ntDep=0\ntEquil=0\noptions=0"
+#         L_command_1 = "technique=7\nEbegin=40272
+# nPoints=11
+# tInt=128
+# nadmean=9
+# d1=5
+# d16=1
+# cr_min=1
+# cr_max=5
+# cr=3
+# Econd=32768
+# Edep=32768
+# tCond=0
+# tDep=0
+# tEquil=0
+# options=0
+# *
         self.sendData(L_command)
 
-        # print(L_command)
+        print(L_command)
 
         if n_channels > 1:
             P_data = []
@@ -381,7 +398,7 @@ class Emstat:
         Estep = int(e_step * 10000)
         Epulse = int(amplitude * 10000)
         #tInt
-        tInt = self.tint_calc(freq[0])
+        tInt = self.tint_calc(1 / freq)
         #format ascii command
         L_command = ("technique={}\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
         {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstep={}\nEpulse={}\nnPoints= \
@@ -409,9 +426,8 @@ class Emstat:
         if nadmean > 11: nadmean = 11
         return int(nadmean), int(d1), int(d16)
 
-    #Calculates tint from the frequency. See p. 26 of comm protocol
-    def tint_calc(self, freq):
-        tint = 1 / freq
+    #Calculates tint from the interval time in seconds. See p. 26 of comm protocol
+    def tint_calc(self, tint):
         if tint < 0.98:
             t2value = tint * 16.7772e6
             t2m = math.ceil(t2value / 65536 + 1)
@@ -424,6 +440,13 @@ class Emstat:
             value += t2m * 65536
             value += t2hl
             return value
+        else:
+            if tint <= 1:
+                return tint * 128
+            elif tint < 60:
+                highbyte = 1
+                return highbyte**6 + tint #Set high byte to 1
+
 
     #Calculates a Uint16 value from the set potential. See p. 11 of comm protocol
     def potential_to_cmd(self, potential, return_int = True):
