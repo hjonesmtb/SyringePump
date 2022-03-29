@@ -142,7 +142,10 @@ def parameters_Format(system_data):
              sg.pin(sg.Button('Start', size=(15, 1), font='Helvetica 14', k = '-START-')),
              sg.pin(sg.Button('Stop', size=(15, 1), font='Helvetica 14'))],
             [sg.Text(key='-TEST_STATUS-', size=(30, 3), font='Helvetica 20')],
-            [sg.Text(key='-TEST_TIME-', size=(30, 1), font='Helvetica 20')
+            [sg.Text(key='-TEST_TIME-', size=(30, 1), font='Helvetica 20')],
+            [sg.Text('Pump Control', size=(20, 1), justification='left', font='Helvetica 20')],
+            [sg.Text('Pump Speed (ul/min), max 1000ul/min', size=(30, 1), font='Helvetica 12'), sg.InputText('', key=('-PumpSpeed-'))],
+            [sg.Button('Flow', size=(15, 1), font='Helvetica 14', k = '-FLOW-'),sg.pin(sg.Button('Stop Pump', size=(15, 1), font='Helvetica 14', k = '-STOP_FLOW-'))
             ],
             ]
     col2 =[
@@ -202,6 +205,12 @@ def parameter_window_process(system_data):
             window['-OPEN SEC1-'].update(SYMBOL_DOWN if is_expanded else SYMBOL_UP)
             window['-SEC1-'].update(visible=is_expanded)
 
+        # if event in ('-FLOW-', None):
+        #     start_pump(float(values['PumpSpeed']))
+        #
+        # if event in ('-STOP_FLOW-', None):
+        #
+
         if event in ('-START-', None):
             if system_data.test_type == 'Stop-Flow':
                 print(event, values)
@@ -248,7 +257,7 @@ def conduct_measurements(pstat, pump, window, system_data):
     first = True
     system_data.start_time = time.time()
     window['-START-'].update('Load Sample')
-    window['-TEST_STATUS-'].update('Initial flow-through phase. \nWhen system is ready (~60s), hit \nload sample to start the 5 second timer to load sample.')
+    window['-TEST_STATUS-'].update('Initial flow-through phase. \nWhen system is ready (~60s), hit \nload sample while turning the sample valve.')
     while True:
         event, _ = window.read(10)
 
@@ -257,13 +266,18 @@ def conduct_measurements(pstat, pump, window, system_data):
         if(event == '-OPERATION DONE-' or first):
             window.perform_long_operation(lambda : measurement_threader(pump, pstat, system_data.valve_turned, system_data), '-OPERATION DONE-')
             first = False
+
         if(event == '-START-' and not system_data.valve_turned):
+            window['-START-'].update('Sample Loaded')
+            window['-TEST_STATUS-'].update('Measurements Running')
             system_data.stop_pstat = True
             system_data.inject_time = time.time() - system_data.start_time
             system_data.valve_turned = True
 
         if check_for_stop(pstat, pump, window, event, system_data):
             break
+
+        window['-MEASUREMENT-'].update('Measurement #:{}'.format(system_data.measurements))
 
         system_data.plot_data()
         if(system_data.measurements >= system_data.n_measurements):
@@ -324,7 +338,6 @@ def check_for_stop(pstat, pump, window, event, system_data):
 def restart(pstat, pump, window):
     window.close()
     new_parameters = True
-
     while new_parameters:
         #Step 2: System Parameters are set by user input.
         window, new_parameters = parameter_window_process()
