@@ -144,7 +144,7 @@ def parameters_Format():
             [sg.Button('Back', size=(15, 1), font='Helvetica 14'),
              sg.pin(sg.Button('Start', size=(15, 1), font='Helvetica 14', k = '-START-')),
              sg.pin(sg.Button('Stop', size=(15, 1), font='Helvetica 14'))],
-            [sg.Text(key='-TEST_STATUS-', size=(30, 1), font='Helvetica 20')],
+            [sg.Text(key='-TEST_STATUS-', size=(30, 3), font='Helvetica 20')],
             [sg.Text(key='-TEST_TIME-', size=(30, 1), font='Helvetica 20')
             ],
             ]
@@ -252,6 +252,8 @@ def connect_to_pstat():
 def conduct_measurements(pstat, pump, window):
     first = True
     system_data.start_time = time.time()
+    window['-START-'].update('Load Sample')
+    window['-TEST_STATUS-'].update('Initial flow-through phase. \nWhen system is ready (~60s), hit \nload sample to start the 5 second timer to load sample.')
     while True:
         event, _ = window.read(10)
 
@@ -264,6 +266,9 @@ def conduct_measurements(pstat, pump, window):
             system_data.stop_pstat = True
             system_data.inject_time = time.time() - system_data.start_time
             system_data.valve_turned = True
+
+        if check_for_stop(pstat, pump, window, event):
+            break
 
         system_data.plot_data()
         if(system_data.measurements >= system_data.n_measurements):
