@@ -246,7 +246,7 @@ def connect_to_pump(system_data):
     pump.set_diameter(system_data.syringe_diam) # Fixed syringe diameter
     pump.set_rate(system_data.flow_rate,'uL/min')
     system_data.infusion_volume = system_data.step_volume*system_data.n_measurements
-    pump.set_volume(system_data.infusion_volume)
+    pump.set_volume()
     pump.reset_acc() # reset accumulated volume to zero
     return pump
 

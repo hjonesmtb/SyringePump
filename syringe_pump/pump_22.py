@@ -123,7 +123,7 @@ class Pump():
 		self.print_state(response)
 
 	# Set the target infusion volume
-	def set_volume(self, volume):
+	def set_volume(self, volume=1000):
 		response = self.write("MLT{}".format(volume))
 		self.print_state(response)
 

@@ -100,7 +100,7 @@ class Emstat:
         zero = self.potential_to_cmd(0) #convert 0V to bytes
         e_constant = self.potential_to_cmd(potential) #convert set potential to bytes
         if n_channels == 1:
-            tInt = 1 #set tInt. Cannot be less than 0.25s if multiplexer present
+            tInt = 128 #set tInt. Cannot be less than 0.25s if multiplexer present
         if n_channels == 2:
             tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
         nPoints = dep_time / tInt #define the number of points
@@ -122,7 +122,7 @@ class Emstat:
 
         self.emstat_ready("L")
         self.sendData(L_command)
-        # print(L_command)
+        print(L_command)
 
         if n_channels > 1:
             P_data = []
