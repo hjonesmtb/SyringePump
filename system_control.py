@@ -5,13 +5,9 @@ To use the application the following libraries will need to be installed:
     matplotlib
     PySimpleGUI
     serial.tools
-
-
 References:
-
 Serial library
 https://pyserial.readthedocs.io/en/latest/tools.html
-
 """
 import sys
 import time
@@ -255,15 +251,16 @@ def conduct_measurements(pstat, pump, window):
         event, _ = window.read(10)
 
         if(event != '__TIMEOUT__'):
-            print(event, system_data.measurements)  
+            print(event, system_data.measurements)
         if(event == '-OPERATION DONE-' or first):
             window.perform_long_operation(lambda : measurement_threader(pump, pstat, system_data.valve_turned), '-OPERATION DONE-')
             first = False
         if(event == '-START-' and not system_data.valve_turned):
+            system_data.stop_pstat = True
             system_data.inject_time = time.time() - system_data.start_time
             system_data.valve_turned = True
 
-        system_data.plot_data() 
+        system_data.plot_data()
         if(system_data.measurements >= system_data.n_measurements):
             pump.stop()
             pump.close()
@@ -273,7 +270,7 @@ def conduct_measurements(pstat, pump, window):
 def measurement_threader(pstat, pump, valve_turned):
     if system_data.test_type == 'Stop-Flow':
         stop_flow(pstat, pump, valve_turned)
-    
+
     elif system_data.test_type == 'Chronoamperometry':
         chrono(pstat, pump, valve_turned)
 
@@ -291,20 +288,43 @@ def measurement_threader(pstat, pump, valve_turned):
                 system_data.reset_measurement_arrays()
 
 def stop_flow(pump, pstat, valve_turned):
-    pump.infuse()
-    pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
-    if(valve_turned):
+    if not valve_turned:
+        pump.infuse()
+        pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1])
+
+    if valve_turned:
+        pump.infuse()
+        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
+        print("swv test")
         pump.stop()
-        pstat.sweepSWV() 
+        pstat.sweepSWV()
 
 def chrono(pump, pstat, valve_turned):
     pump.infuse()
     pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
     if(valve_turned):
-        pump.stop()   
- 
-"""Main process for GUI windows. Process occurs in the following steps:
+        pump.stop()
 
+'''Checks if the Stop button has been pressed. If so, returns to main GUI window'''
+def check_for_stop(pstat, pump, window, event):
+    if event in ('Stop', None):
+        system_data.stop_pstat = True
+        pump.stop()
+        restart(pstat, pump, window)
+    return
+
+'''Starts another measurement once user has stopped'''
+def restart(pstat, pump, window):
+    new_parameters = True
+    while new_parameters:
+        #Step 2: System Parameters are set by user input.
+        window, new_parameters = parameter_window_process()
+        if new_parameters:
+            test_setting_process()
+    conduct_measurements(pstat, pump, window)
+
+
+"""Main process for GUI windows. Process occurs in the following steps:
 1). The USB port selection window appears allowing the user to select the correct usb connections
     for the potentiostat and the syringe pump.
 2). The parameter setting window appears allowing for a test to be named
@@ -312,7 +332,6 @@ def chrono(pump, pstat, valve_turned):
 3). The syringe pump is connected via serial.
 4). The potentiostat is connected via serial.
 5). The voltammetry is conducted and data is saved to csv file(s).
-
 """
 def main():
     try:
@@ -351,7 +370,7 @@ def main():
 
 if __name__ == '__main__':
     main()
-   
+
 # def injection_countdown(event, window):
 #     # #  if event in ('-START-', None):
 #     # system_data.stop_pstat = True #Send flag to pstat to stop measurement
@@ -520,23 +539,3 @@ if __name__ == '__main__':
 #             check_for_stop(pstat, pump, window, event)
 #             window.read(10)
 #     restart(pstat, pump, window)
-
-# '''Checks if the Stop button has been pressed. If so, returns to main GUI window'''
-# def check_for_stop(pstat, pump, window, event):
-#     if event in ('Stop', None):
-#         system_data.stop_pstat = True
-#         pump.stop()
-#         restart(pstat, pump, window)
-#     return
-
-# '''Starts another measurement once user has stopped'''
-# def restart(pstat, pump, window):
-#     new_parameters = True
-#     while new_parameters:
-#         #Step 2: System Parameters are set by user input.
-#         window, new_parameters = parameter_window_process()
-#         if new_parameters:
-#             test_setting_process()
-#     conduct_measurements(pstat, pump, window)
-
-
