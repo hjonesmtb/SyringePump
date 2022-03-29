@@ -257,7 +257,7 @@ def conduct_measurements(pstat, pump, window):
     first = True
     system_data.start_time = time.time()
     window['-START-'].update('Load Sample')
-    window['-TEST_STATUS-'].update('Initial flow-through phase. \nWhen system is ready (~60s), hit \nload sample to start the 5 second timer to load sample.')
+    window['-TEST_STATUS-'].update('Initial flow-through phase. \nWhen system is ready (~60s), hit \nload sample while turning the sample valve.')
     while True:
         event, _ = window.read(10)
 
@@ -266,13 +266,18 @@ def conduct_measurements(pstat, pump, window):
         if(event == '-OPERATION DONE-' or first):
             window.perform_long_operation(lambda : measurement_threader(pump, pstat, system_data.valve_turned), '-OPERATION DONE-')
             first = False
+
         if(event == '-START-' and not system_data.valve_turned):
+            window['-START-'].update('Sample Loaded')
+            window['-TEST_STATUS-'].update('Measurements Running')
             system_data.stop_pstat = True
             system_data.inject_time = time.time() - system_data.start_time
             system_data.valve_turned = True
 
         if check_for_stop(pstat, pump, window, event):
             break
+
+        window['-MEASUREMENT-'].update('Measurement #:{}'.format(system_data.measurements))
 
         system_data.plot_data()
         if(system_data.measurements >= system_data.n_measurements):
@@ -332,7 +337,6 @@ def check_for_stop(pstat, pump, window, event):
 def restart(pstat, pump, window):
     window.close()
     new_parameters = True
-
     while new_parameters:
         #Step 2: System Parameters are set by user input.
         window, new_parameters = parameter_window_process()

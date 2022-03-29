@@ -26,7 +26,7 @@ v_range = 3 #specific to emstat3
 
 class Emstat:
     def __init__(self, pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequencies, system_data):
-        print(frequencies)
+        # print(frequencies)
         try:
             #self.ser = serial.Serial('COM{}'.format(pstat_com), baudrate=230400, timeout = 1)
             self.ser = serial.Serial(str(pstat_com), baudrate=230400, timeout = 1)
@@ -39,7 +39,8 @@ class Emstat:
                     print("port opened successfully")
             except:
                 print("COM port is not available")
-        self.swv_params = self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequencies, e_cond, t_cond)
+        # print(frequencies)
+        # self.swv_params = self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequencies, e_cond, t_cond)
         self.deposition_potential = e_dep
         self.system_data = system_data
 
@@ -121,7 +122,7 @@ class Emstat:
 
         self.emstat_ready("L")
         self.sendData(L_command)
-        print(L_command)
+        # print(L_command)
 
         if n_channels > 1:
             P_data = []
@@ -167,7 +168,6 @@ class Emstat:
                     char = self.readData(1).decode()
                 #print(package)
                 if len(package) != 16: #Check to make sure packages are the right length
-                    raise ValueError('U package not 16 characters')
                     print('U package not 16 characters')
                 else:
                     time_log.append(time.time()-self.system_data.start_time)
@@ -281,14 +281,16 @@ class Emstat:
         T_data = [] #string array to store T packages from measurement (during steady state)
         U_data = [] #string array to store U packages from measurement (during SWV)
 
-        print(self.system_data.n_measurements % 3)
+        print('frequency', self.system_data.frequencies[self.system_data.measurements%3])
         # self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequencies, e_cond, t_cond)
+        swv_params = self.format_swv_parameters(self.system_data.t_equil, self.system_data.e_begin, self.system_data.e_end, self.system_data.e_step, self.system_data.amplitude, self.system_data.frequencies[self.system_data.measurements%3], self.system_data.e_cond, self.system_data.t_cond)
+
 
         self.sendData("J") # disables idle packages
         self.ser.flush() #clears the buffer
         self.ser.read()
         self.emstat_ready("L")
-        self.sendData(self.swv_params)
+        self.sendData(swv_params)
         try:
             skip_T = False
             n = 0
@@ -296,7 +298,7 @@ class Emstat:
                 if self.check_for_stop():
                     break
                 char = self.readData(1).decode()
-                print(char)
+                # print(char)
                 if n > 200:
                     raise ValueError('Reading wrong, no T found in first 20 characters')
                 if char == "T":
@@ -321,10 +323,11 @@ class Emstat:
                         char = self.readData(1).decode()
                     if char == "M": #read another character if M received, should be a U
                         char = self.readData(1).decode()
-                    print(package)
+                    # print(package)
                     if len(package) != 20:
-                        raise ValueError('T package not 20 characters')
-                    T_data.append(package)
+                        print('T package not 20 characters')
+                    else:
+                        T_data.append(package)
 
             while char != '*': #end condition
                 if self.check_for_stop():
@@ -338,16 +341,17 @@ class Emstat:
                         package = package + char
                     char = self.readData(1).decode()
                 #print(package)
-                if len(package) != 16:
-                    raise ValueError('U package not 16 characters')
-                potential, current, current_overload, current_underload = self.process_U(package)
-                potential_swv.append(potential)
-                current_swv.append(current)
-                overload_swv.append(current_overload)
-                underload_swv.append(current_underload)
-                time_swv.append(time.time()- self.system_data.start_time)
-                print("swv", potential, current)
-                self.system_data.write_swv(time_swv, potential_swv, current_swv, overload_swv, underload_swv)
+                if len(package) != 16: #Check to make sure packages are the right length
+                    print('U package not 16 characters')
+                else:
+                    potential, current, current_overload, current_underload = self.process_U(package)
+                    potential_swv.append(potential)
+                    current_swv.append(current)
+                    overload_swv.append(current_overload)
+                    underload_swv.append(current_underload)
+                    time_swv.append(time.time()- self.system_data.start_time)
+                    # print("swv", potential, current)
+                    self.system_data.write_swv(time_swv, potential_swv, current_swv, overload_swv, underload_swv)
             print("measurement complete")
         except Exception as e:
             print("Process terminated")
@@ -363,10 +367,10 @@ class Emstat:
         #n_points
         nPoints = int((e_end - e_begin) / e_step + 1)
         #t_meas, d1, d16, nadmean, tPulse
-        t_meas = 1/(6*freq[0]) #p. 23 com protocol
+        t_meas = 1/(6*freq) #p. 23 com protocol
         nadmean, d1, d16 = self.d1_d16_calc(t_meas)
         t_meas_actual = 2**nadmean * (0.222 + d1 * 0.0076 + d16 * 0.0005) / 1000
-        tPulse = int((1 / (2 * freq[0]) - t_meas_actual) / 0.0000152)
+        tPulse = int((1 / (2 * freq) - t_meas_actual) / 0.0000152)
         #potentials
         Econd = self.potential_to_cmd(e_cond)
         Edep = self.potential_to_cmd(0)
@@ -381,7 +385,7 @@ class Emstat:
         {}\ntInt={}\ntPulse={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
         (technique, e_cond, t_cond, 0, 0, t_equil, cr_min, cr_max, cr, Ebegin, \
         Estep, Epulse, nPoints, tInt, tPulse, d1, d16, options, nadmean))
-        print(L_command)
+        # print(L_command)
         return L_command
 
     #Calculates d1, d16 and nadmean from tmeas. See p. 24 of comm protocol
