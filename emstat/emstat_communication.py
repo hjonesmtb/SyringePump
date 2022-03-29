@@ -121,7 +121,10 @@ class Emstat:
         # cr, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
 
         self.emstat_ready("L")
+        L_command = "technique=7\nEbegin=40272\nnPoints=41\ntInt=71369712\nnadmean=7\nd1=5\nd16=1\ncr_min=1\ncr_max=5\ncr=3\nEcond=32768\nEdep=32768\ntCond=0\ntDep=0\ntEquil=0\n\noptions=0"
+
         self.sendData(L_command)
+
         # print(L_command)
 
         if n_channels > 1:
