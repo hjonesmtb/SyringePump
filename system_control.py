@@ -143,7 +143,10 @@ def parameters_Format():
              sg.pin(sg.Button('Start', size=(15, 1), font='Helvetica 14', k = '-START-')),
              sg.pin(sg.Button('Stop', size=(15, 1), font='Helvetica 14'))],
             [sg.Text(key='-TEST_STATUS-', size=(30, 3), font='Helvetica 20')],
-            [sg.Text(key='-TEST_TIME-', size=(30, 1), font='Helvetica 20')
+            [sg.Text(key='-TEST_TIME-', size=(30, 1), font='Helvetica 20')],
+            [sg.Text('Pump Control', size=(20, 1), justification='left', font='Helvetica 20')],
+            [sg.Text('Pump Speed (ul/min), max 1000ul/min', size=(30, 1), font='Helvetica 12'), sg.InputText('', key=('-PumpSpeed-'))],
+            [sg.Button('Flow', size=(15, 1), font='Helvetica 14', k = '-FLOW-'),sg.pin(sg.Button('Stop Pump', size=(15, 1), font='Helvetica 14', k = '-STOP_FLOW-'))
             ],
             ]
     col2 =[
@@ -202,6 +205,12 @@ def parameter_window_process():
             is_expanded = not is_expanded
             window['-OPEN SEC1-'].update(SYMBOL_DOWN if is_expanded else SYMBOL_UP)
             window['-SEC1-'].update(visible=is_expanded)
+
+        # if event in ('-FLOW-', None):
+        #     start_pump(float(values['PumpSpeed']))
+        #
+        # if event in ('-STOP_FLOW-', None):
+        #
 
         if event in ('-START-', None):
             if system_data.test_type == 'Stop-Flow':
