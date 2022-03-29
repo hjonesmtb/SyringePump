@@ -321,11 +321,14 @@ def check_for_stop(pstat, pump, window, event):
         system_data.stop_pstat = True
         pump.stop()
         restart(pstat, pump, window)
-    return
+        return True
+    return False
 
 '''Starts another measurement once user has stopped'''
 def restart(pstat, pump, window):
+    window.close()
     new_parameters = True
+
     while new_parameters:
         #Step 2: System Parameters are set by user input.
         window, new_parameters = parameter_window_process()

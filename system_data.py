@@ -224,13 +224,15 @@ class System_Data:
             if(length >1):
                 self.ax_dep.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
             if(length > PUMP_SCALE and not self.valve_turned):
-                
+                self.ax_dep.cla()
                 self.ax_dep.plot(self.time_dep[PUMP_SCALE-1:length-1],self.current_dep[PUMP_SCALE-1:length-1], color = colour)
                 #self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
             length = get_min_length(self.potential_swv, self.current_swv)
             if(length >1):
                 self.ax_swv.plot(self.potential_swv[0:length-1],self.current_swv[0:length-1], color = colour)
+                self.ax_swv.legend()
             self.fig_agg.draw()
+
         elif self.test_type == 'Cyclic voltammetry':
             length = get_min_length(self.potential_dep, self.current_dep)
             if(length >1):
@@ -240,6 +242,7 @@ class System_Data:
             length = get_min_length(self.time_dep, self.current_dep)
             if(length >1):
                 self.ax_dep.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
+                self.ax_dep.legend()
             self.fig_agg.draw()
         return
 
