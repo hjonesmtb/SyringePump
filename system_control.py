@@ -51,6 +51,7 @@ def test_settings_window(system_data):
 
     # create the form and show it without the plot
     window = sg.Window('Test Settings', layout, finalize=True, resizable=True)
+    window.Maximize()
     return window
 
 def test_settings_gui_format(usbs, port_name, system_data):
@@ -61,7 +62,7 @@ def test_settings_gui_format(usbs, port_name, system_data):
             [sg.Text('Syringe Diameter [mm]', size=(20,1), font='Helvetica 14'), sg.InputText(system_data.syringe_diam, key=('-SyringeDiam-'))],
             [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 14'), sg.Combo(port_name, size=(20,1),key=('-PumpPort-'), default_value=[usb.name for usb in usbs if "Prolific" in usb])],
             [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 14'), sg.Combo(port_name, size=(20,1),key=("-PStatPort-"))],
-            [sg.Text('List of Detected Ports', size=(20, 1), font='Helvetica 14'), sg.Listbox(usbs, size=(30, len(usbs)), key=("-usbs-"))],
+            [sg.Text('List of Detected Ports', size=(20, 1), font='Helvetica 14'), sg.Listbox(usbs, size=(40, len(usbs)), key=("-usbs-"))],
             [sg.Canvas(key='-controls_cv-')],
             [sg.Button('Next', size=(15, 1), pad=((280, 0), 3), font='Helvetica 14')],
             ]
