@@ -121,7 +121,8 @@ class Emstat:
         # cr, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
 
         self.emstat_ready("L")
-        L_command = "technique=7\nEbegin=40272\nnPoints=41\ntInt=71369712\nnadmean=7\nd1=5\nd16=1\ncr_min=1\ncr_max=5\ncr=3\nEcond=32768\nEdep=32768\ntCond=0\ntDep=0\ntEquil=0\n\noptions=0"
+        
+        L_command = "technique=7\nEbegin=40272\nnPoints=41\ntInt=71369712\nnadmean=7\nd1=5\nd16=1\ncr_min=1\ncr_max=5\ncr=3\nEcond=32768\nEdep=32768\ntCond=0\ntDep=0\ntEquil=0\noptions=0\n*"
 
         self.sendData(L_command)
 
@@ -381,7 +382,7 @@ class Emstat:
         Estep = int(e_step * 10000)
         Epulse = int(amplitude * 10000)
         #tInt
-        tInt = self.tint_calc(freq[0])
+        tInt = self.tint_calc(freq)
         #format ascii command
         L_command = ("technique={}\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
         {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstep={}\nEpulse={}\nnPoints= \
