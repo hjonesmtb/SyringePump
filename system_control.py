@@ -52,6 +52,7 @@ def test_settings_window(system_data):
     # create the form and show it without the plot
     window = sg.Window('Test Settings', layout, finalize=True, resizable=True)
     window.Maximize()
+    
     return window
 
 def test_settings_gui_format(usbs, port_name, system_data):
