@@ -234,10 +234,6 @@ class Emstat:
         self.sendData('Z')
         return
 
-    #Runs swv sweep, returns array with potential, current, overload and underload arrays
-    def sweepSWV(self):
-        self.run_swv()
-
     #Converts bytes to voltage, current, stage, I status and range, Aux input, for Tpackages
     def process_T(self, T_data):
         potential_array = [] #changed from potential to potential_array - Nick
@@ -292,7 +288,7 @@ class Emstat:
         return potential1, potential2, current1, current2
 
     #Runs measurement with defined L command parameter. L command is a string formatted as in p.26 of comm protocol
-    def run_swv(self):
+    def run_swv(self, frequency_index):
         potential_swv = [] #array to store potential from swv for this run
         current_swv = [] #array to store current from swv for this run
         overload_swv = [] #array to store overload from swv for this run
@@ -301,9 +297,9 @@ class Emstat:
         T_data = [] #string array to store T packages from measurement (during steady state)
         U_data = [] #string array to store U packages from measurement (during SWV)
 
-        print('frequency', self.system_data.frequencies[self.system_data.measurements%3])
+        # print('frequency', self.system_data.frequencies[self.system_data.measurements%3])
         # self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequencies, e_cond, t_cond)
-        swv_params = self.format_swv_parameters(self.system_data.t_equil, self.system_data.e_begin, self.system_data.e_end, self.system_data.e_step, self.system_data.amplitude, self.system_data.frequencies[self.system_data.measurements%3], self.system_data.e_cond, self.system_data.t_cond)
+        swv_params = self.format_swv_parameters(self.system_data.t_equil, self.system_data.e_begin, self.system_data.e_end, self.system_data.e_step, self.system_data.amplitude, self.system_data.frequencies[frequency_index], self.system_data.e_cond, self.system_data.t_cond)
 
 
         self.sendData("J") # disables idle packages
