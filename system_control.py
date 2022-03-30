@@ -52,7 +52,7 @@ def test_settings_window(system_data):
     # create the form and show it without the plot
     window = sg.Window('Test Settings', layout, finalize=True, resizable=True)
     window.Maximize()
-    
+
     return window
 
 def test_settings_gui_format(usbs, port_name, system_data):
@@ -250,7 +250,7 @@ def conduct_measurements(pstat, pump, window, system_data):
     first = True
     system_data.start_time = time.time()
     window['-START-'].update('Load Sample')
-    window['-TEST_STATUS-'].update('Initial flow-through phase. \nWhen system is ready (~60s), hit \nload sample to start the 5 second timer to load sample.')
+    window['-TEST_STATUS-'].update('Initial flow-through phase. \nWhen system is ready (~60s), hit \nload sample while turning the sample valve.')
     while True:
         event, _ = window.read(10)
 
@@ -260,12 +260,16 @@ def conduct_measurements(pstat, pump, window, system_data):
             window.perform_long_operation(lambda : measurement_threader(pump, pstat, system_data.valve_turned, system_data), '-OPERATION DONE-')
             first = False
         if(event == '-START-' and not system_data.valve_turned):
+            window['-START-'].update('Sample Loaded')
+            window['-TEST_STATUS-'].update('Measurements Running')
             system_data.stop_pstat = True
             system_data.inject_time = time.time() - system_data.start_time
             system_data.valve_turned = True
 
         if check_for_stop(pstat, pump, window, event, system_data):
             break
+
+        window['-MEASUREMENT-'].update('Measurement #:{}'.format(system_data.measurements + 1))
 
         system_data.plot_data()
         if(system_data.measurements >= system_data.n_measurements):
@@ -301,7 +305,9 @@ def stop_flow(pump, pstat, valve_turned, system_data):
         pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
         print("swv test")
         pump.stop()
-        pstat.sweepSWV()
+        pstat.run_swv(freq_index = 0)
+        pstat.run_swv(freq_index = 1)
+        pstat.run_swv(freq_index = 2)
 
 def chrono(pump, pstat, valve_turned, system_data):
     if not valve_turned:
@@ -312,7 +318,7 @@ def chrono(pump, pstat, valve_turned, system_data):
         pump.infuse()
         pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
         pump.stop()
-    
+
 
 '''Checks if the Stop button has been pressed. If so, returns to main GUI window'''
 def check_for_stop(pstat, pump, window, event, system_data):
@@ -351,10 +357,10 @@ def main():
         stopped = False
         system_data = System_Data()
         while True:
-        
+
             if(new_parameters):
                 test_setting_process(system_data)
-                window, new_parameters = parameter_window_process(system_data)         
+                window, new_parameters = parameter_window_process(system_data)
             else:
                 pump = connect_to_pump(system_data)
                 pstat = connect_to_pstat(system_data)
@@ -387,7 +393,7 @@ def main():
 
             if exit_app:
                 break
-    
+
     except KeyboardInterrupt:
         print('Interrupted')
         try:
