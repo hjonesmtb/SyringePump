@@ -101,14 +101,16 @@ def swv_format(system_data):
             [sg.Text('Flow', size=(20, 1), font='Helvetica 14')],
             [sg.Text('E condition [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_cond, key='-E_cond-')],
             [sg.Text('t condition [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_cond, key='-T_cond-')],
-            [sg.Text('t equilibration [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil, key='-T_equil-')],
+            # [sg.Text('t equilibration dep [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil_deposition, key='-T_equil_deposition-')],
+            [sg.Text('t equilibration swv [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil, key='-T_equil-')],
             [sg.Text('E begin [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_begin, key='-E_begin-')],
             [sg.Text('E stop [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_end, key='-E_end-')],
             [sg.Text('E step [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_step, key='-E_step-')],
             [sg.Text('Amplitude [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.amplitude, key='-Amp-')],
-            [sg.Text('Frequency 1 [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[0], key='-Freq_1-')],
-            [sg.Text('Frequency 2 [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[1], key='-Freq_2-')],
-            [sg.Text('Frequency 3 [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[2], key='-Freq_3-')],
+            [sg.Text('Frequency dep [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequency_dep, key='-Freq_dep-')],
+            [sg.Text('Frequency 1 swv [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[0], key='-Freq_1-')],
+            [sg.Text('Frequency 2 swv [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[1], key='-Freq_2-')],
+            [sg.Text('Frequency 3 swv [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[2], key='-Freq_3-')],
             ]
     return swv_parameters
 
@@ -130,7 +132,8 @@ def chronoamp_format(system_data):
             [sg.Text('Flow rate [uL/min]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
             [sg.Text('E deposition [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_dep, key='-E_dep-')],
             [sg.Text('t equilibration [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil, key='-T_equil-')],
-            [sg.Text('t deposition [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_dep, key='-T_dep-')],
+            [sg.Text('t run [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_dep, key='-T_dep-')],
+            [sg.Text('Frequency [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequency_dep, key='-Freq_dep-')],
             ]
     return chrono_parameters
 
@@ -217,6 +220,7 @@ def parameter_window_process(system_data):
                 system_data.e_begin, system_data.e_end, system_data.e_step = float(values['-E_begin-']), float(values['-E_end-']), float(values['-E_step-'])
                 system_data.amplitude = float(values['-Amp-'])
                 system_data.frequencies =  [float(values['-Freq_1-']), float(values['-Freq_2-']), float(values['-Freq_3-'])]
+                system_data.frequency_dep = float(values['-Freq_dep-'])
                 system_data.t_dep = float(system_data.step_volume) / (float(system_data.flow_rate)*system_data.flowrate_conversion) #s/measurement
                 new_parameters = False
                 break
@@ -228,6 +232,7 @@ def parameter_window_process(system_data):
                 system_data.t_equil = float(values['-T_equil-'])
                 system_data.e_dep = float(values['-E_dep-'])
                 system_data.t_dep = float(values['-T_dep-']) #s/measurement
+                system_data.frequency_dep = float(values['-Freq_dep-'])
                 system_data.n_measurements = 1
                 new_parameters = False
                 break
