@@ -61,7 +61,7 @@ class Emstat:
 
     '''Runs deposition on two electrodes, returns an array with potential, current, noise, overload and underload data'''
     # Runs constant voltage measurement at potential V for time_chrono s with n multiplexer channels
-    def deposition(self, dep_time, eDep_e1, eDep_e2, sensing_electrode):
+    def deposition(self, dep_time, eDep_e1, eDep_e2, sensing_electrode, pump = False):
         #Sets potential on non-sensing electrode:
         if sensing_electrode == [0,1]:
             n_channels = 1
@@ -89,14 +89,14 @@ class Emstat:
             # self.sendData(command)
 
             # self.sendData('m' + sensing_channel)
-            self.chronoamp(sensing_dep, n_channels, dep_time)
+            self.chronoamp(sensing_dep, n_channels, dep_time, pump)
 
         if n_channels == 2:
             self.sendData('m' + sensing_channel)
-            self.chronoamp(sensing_dep, n_channels, dep_time)
+            self.chronoamp(sensing_dep, n_channels, dep_time, pump)
 
     #Runs chronoamp measurement
-    def chronoamp(self, potential, n_channels, dep_time):
+    def chronoamp(self, potential, n_channels, dep_time, pump):
         zero = self.potential_to_cmd(0) #convert 0V to bytes
         e_constant = self.potential_to_cmd(potential) #convert set potential to bytes
         tInt = 1 / self.system_data.frequency_dep #set tInt. Cannot be less than 0.25s if multiplexer present
@@ -115,30 +115,10 @@ class Emstat:
         L_command = ("technique=7\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
         {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstby={}\nnPoints= \
         {}\ntInt={}\nmux_delay=0\nnmux={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
-        (zero, 0, zero, 0, 0, system_data.cr_min, system_data.cr_max, \
-        system_data.cr_begin, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
-
-        # (eCond = zero, tCond = 0, eDep = zero, tDep = 0, tEquil = 0, cr_min, cr_max, \
-        # cr, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
+        (zero, 0, zero, 0, self.system_data.t_equil_deposition, self.system_data.cr_min, self.system_data.cr_max, \
+        self.system_data.cr_begin, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
 
         self.emstat_ready("L")
-        # L_command = "technique=7\nEbegin=40272\nnPoints=41\ntInt=71369712\nnadmean=7\nd1=5\nd16=1\ncr_min=1\ncr_max=5\ncr=3\nEcond=32768\nEdep=32768\ntCond=0\ntDep=0\ntEquil=0\noptions=0"
-#         L_command_1 = "technique=7\nEbegin=40272
-# nPoints=11
-# tInt=128
-# nadmean=9
-# d1=5
-# d16=1
-# cr_min=1
-# cr_max=5
-# cr=3
-# Econd=32768
-# Edep=32768
-# tCond=0
-# tDep=0
-# tEquil=0
-# options=0
-# *
         self.sendData(L_command)
 
         print(L_command)
@@ -174,6 +154,8 @@ class Emstat:
                 if self.check_for_stop():
                     break
                 char = self.readData(1).decode()
+            if pump != False:
+                pump.infuse()
             while char != '*': #end condition
                 if self.check_for_stop():
                     break
@@ -377,7 +359,7 @@ class Emstat:
     def format_swv_parameters(self, t_equil, e_begin, e_end, e_step, amplitude, freq, e_cond, t_cond):
         #options
         options = 0
-        if system_data.measure_i_forward_reverse: options += 1024
+        if self.system_data.measure_i_forward_reverse: options += 1024
         if cell_on_post_measure: options += 4
         #n_points
         nPoints = int((e_end - e_begin) / e_step + 1)
@@ -398,7 +380,7 @@ class Emstat:
         L_command = ("technique=2\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
         {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstep={}\nEpulse={}\nnPoints= \
         {}\ntInt={}\ntPulse={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
-        (e_cond, t_cond, 0, 0, t_equil, system_data.cr_min, system_data.cr_max, system_data.cr_begin, Ebegin, \
+        (e_cond, t_cond, 0, 0, t_equil, self.system_data.cr_min, self.system_data.cr_max, self.system_data.cr_begin, Ebegin, \
         Estep, Epulse, nPoints, tInt, tPulse, d1, d16, options, nadmean))
         # print(L_command)
         return L_command

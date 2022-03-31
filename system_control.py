@@ -48,10 +48,12 @@ def test_settings_window(system_data):
         port_name.append(usb.name)
 
     layout = test_settings_gui_format(usbs, port_name, system_data)
-
+    # iconfile = os.getcwd() + '\fentanyl.png'
+    # print(iconfile)
     # create the form and show it without the plot
     window = sg.Window('Test Settings', layout, finalize=True, resizable=True)
     window.Maximize()
+    # window.set_icon(iconfile)
 
     return window
 
@@ -72,9 +74,12 @@ def test_settings_gui_format(usbs, port_name, system_data):
 #boiler plate code for entering parameters
 def control_windows(system_data):
     layout = parameters_Format(system_data)
+    # print(os.path())
+    # iconfile = os.getcwd() + '\fentanyl.png'
     window = sg.Window('Start Screen', layout, finalize=True, resizable=True)
     system_data.Initialize_Plots(window)
     window.Maximize()
+    # window.set_icon(iconfile)
     return window
 
 def voltammetry_gui_format(system_data):
@@ -101,7 +106,7 @@ def swv_format(system_data):
             [sg.Text('Flow', size=(20, 1), font='Helvetica 14')],
             [sg.Text('E condition [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_cond, key='-E_cond-')],
             [sg.Text('t condition [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_cond, key='-T_cond-')],
-            # [sg.Text('t equilibration dep [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil_deposition, key='-T_equil_deposition-')],
+            [sg.Text('t equilibration dep [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil_deposition, key='-T_equil_deposition-')],
             [sg.Text('t equilibration swv [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil, key='-T_equil-')],
             [sg.Text('E begin [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_begin, key='-E_begin-')],
             [sg.Text('E stop [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_end, key='-E_end-')],
@@ -113,7 +118,7 @@ def swv_format(system_data):
             [sg.Text('Frequency 3 swv [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[2], key='-Freq_3-')],
             [sg.Text('Current range min (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_min, key='-cr_min-')],
             [sg.Text('Current range max (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_max, key='-cr_max-')],
-            [sg.Text('Current range starting (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_begin, key='-cr_max-')],
+            [sg.Text('Current range starting (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_begin, key='-cr_begin-')],
             [sg.Checkbox(text='Measure i forward', font='Helvetica 14',key='-Measure_i_forward-')],
             ]
     return swv_parameters
@@ -135,7 +140,7 @@ def chronoamp_format(system_data):
             [sg.Text('Test Name', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.test_name, key=('-TestName-'))],
             [sg.Text('Flow rate [uL/min]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
             [sg.Text('E deposition [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_dep, key='-E_dep-')],
-            [sg.Text('t equilibration [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil, key='-T_equil-')],
+            [sg.Text('t equilibration [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil_deposition, key='-T_equil_deposition-')],
             [sg.Text('t run [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_dep, key='-T_dep-')],
             [sg.Text('Frequency [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequency_dep, key='-Freq_dep-')],
             [sg.Text('Current range min (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_min, key='-cr_min-')],
@@ -224,14 +229,15 @@ def parameter_window_process(system_data):
                 system_data.e_cond, system_data.t_cond = float(values['-E_cond-']), float(values['-T_cond-'])
                 system_data.e_dep = float(values['-E_dep-'])
                 system_data.t_equil = float(values['-T_equil-'])
+                system_data.t_equil_deposition = float(values['-T_equil_deposition-'])
                 system_data.e_begin, system_data.e_end, system_data.e_step = float(values['-E_begin-']), float(values['-E_end-']), float(values['-E_step-'])
                 system_data.amplitude = float(values['-Amp-'])
                 system_data.frequencies =  [float(values['-Freq_1-']), float(values['-Freq_2-']), float(values['-Freq_3-'])]
                 system_data.frequency_dep = float(values['-Freq_dep-'])
                 system_data.t_dep = float(system_data.step_volume) / (float(system_data.flow_rate)*system_data.flowrate_conversion) #s/measurement
-                system_data.cr_min = float(values['-cr_min-'])
-                system_data.cr_max = float(values['-cr_max-'])
-                system_data.cr_begin = float(values['-cr_begin-'])
+                system_data.cr_min = int(values['-cr_min-'])
+                system_data.cr_max = int(values['-cr_max-'])
+                system_data.cr_begin = int(values['-cr_begin-'])
                 system_data.measure_i_forward_reverse = values['-Measure_i_forward-']
                 new_parameters = False
                 break
@@ -240,7 +246,7 @@ def parameter_window_process(system_data):
                 print(event, values)
                 system_data.test_name = values['-TestName-']
                 system_data.flow_rate = float(values['-FlowRate-'])
-                system_data.t_equil = float(values['-T_equil-'])
+                system_data.t_equil_deposition = float(values['-T_equil_deposition-'])
                 system_data.e_dep = float(values['-E_dep-'])
                 system_data.t_dep = float(values['-T_dep-']) #s/measurement
                 system_data.frequency_dep = float(values['-Freq_dep-'])
@@ -316,12 +322,12 @@ def measurement_threader(pstat, pump, valve_turned, system_data):
 
 def stop_flow(pump, pstat, valve_turned, system_data):
     if not valve_turned:
-        pump.infuse()
-        pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1])
+        # pump.infuse()
+        pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1], pump)
 
     if valve_turned:
-        pump.infuse()
-        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
+        # pump.infuse()
+        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1], pump)
         print("swv test")
         pump.stop()
         if system_data.frequencies[0] != 0:
@@ -333,12 +339,12 @@ def stop_flow(pump, pstat, valve_turned, system_data):
 
 def chrono(pump, pstat, valve_turned, system_data):
     if not valve_turned:
-        pump.infuse()
-        pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1])
+        # pump.infuse()
+        pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1], pump)
 
     if valve_turned:
-        pump.infuse()
-        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
+        # pump.infuse()
+        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1], pump)
         pump.stop()
 
 

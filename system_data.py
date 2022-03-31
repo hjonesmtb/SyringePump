@@ -25,7 +25,8 @@ PSTAT_COM = "COM6"
 E_CONDITION = 0  # V
 T_CONDITION = 0  # s
 E_DEPOSITION = 0.8  # V
-T_EQUILIBRATION = 0  # s
+T_EQUILIBRATION = 2  # s
+T_EQUILIBRATION_DEPOSITION = 2 #s
 E_BEGIN = -0.4  # V
 E_STOP = 0.4  # V
 E_STEP = 0.005  # V
@@ -113,6 +114,7 @@ class System_Data:
             self.t_cond = T_CONDITION
             self.t_dep = T_DEPOSITION
             self.t_equil = T_EQUILIBRATION
+            self.t_equil_deposition = T_EQUILIBRATION_DEPOSITION
             self.amplitude = AMPLITUDE
             self.frequencies = FREQUENCIES
             self.frequency_dep = FREQUENCY_DEP
@@ -139,6 +141,7 @@ class System_Data:
             self.t_cond = data_dict["t_cond"]
             self.t_dep = data_dict["t_dep"]
             self.t_equil = data_dict["t_equil"]
+            self.t_equil_deposition = data_dict["t_equil_deposition"]
             self.amplitude = data_dict["amplitude"]
             self.frequencies = data_dict["frequencies"]
             self.frequency_dep = data_dict["frequency_dep"]
@@ -213,6 +216,7 @@ class System_Data:
             "t_cond" : self.t_cond,
             "t_dep" : self.t_dep,
             "t_equil": self.t_equil,
+            "t_equil_deposition": self.t_equil_deposition,
             "amplitude" : self.amplitude,
             "frequencies" : self.frequencies,
             "frequency_dep" : self.frequency_dep,
