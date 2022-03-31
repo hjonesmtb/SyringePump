@@ -111,6 +111,10 @@ def swv_format(system_data):
             [sg.Text('Frequency 1 swv [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[0], key='-Freq_1-')],
             [sg.Text('Frequency 2 swv [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[1], key='-Freq_2-')],
             [sg.Text('Frequency 3 swv [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[2], key='-Freq_3-')],
+            [sg.Text('Current range min (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_min, key='-cr_min-')],
+            [sg.Text('Current range max (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_max, key='-cr_max-')],
+            [sg.Text('Current range starting (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_begin, key='-cr_max-')],
+            [sg.Checkbox(text='Measure i forward', font='Helvetica 14',key='-Measure_i_forward-')],
             ]
     return swv_parameters
 
@@ -134,6 +138,9 @@ def chronoamp_format(system_data):
             [sg.Text('t equilibration [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil, key='-T_equil-')],
             [sg.Text('t run [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_dep, key='-T_dep-')],
             [sg.Text('Frequency [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequency_dep, key='-Freq_dep-')],
+            [sg.Text('Current range min (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_min, key='-cr_min-')],
+            [sg.Text('Current range max (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_max, key='-cr_max-')],
+            [sg.Text('Current range starting (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_begin, key='-cr_max-')],
             ]
     return chrono_parameters
 
@@ -222,6 +229,10 @@ def parameter_window_process(system_data):
                 system_data.frequencies =  [float(values['-Freq_1-']), float(values['-Freq_2-']), float(values['-Freq_3-'])]
                 system_data.frequency_dep = float(values['-Freq_dep-'])
                 system_data.t_dep = float(system_data.step_volume) / (float(system_data.flow_rate)*system_data.flowrate_conversion) #s/measurement
+                system_data.cr_min = float(values['-cr_min-'])
+                system_data.cr_max = float(values['-cr_max-'])
+                system_data.cr_begin = float(values['-cr_begin-'])
+                system_data.measure_i_forward_reverse = values['-Measure_i_forward-']
                 new_parameters = False
                 break
 
@@ -234,6 +245,9 @@ def parameter_window_process(system_data):
                 system_data.t_dep = float(values['-T_dep-']) #s/measurement
                 system_data.frequency_dep = float(values['-Freq_dep-'])
                 system_data.n_measurements = 1
+                system_data.cr_min = float(values['-cr_min-'])
+                system_data.cr_max = float(values['-cr_max-'])
+                system_data.cr_begin = float(values['-cr_begin-'])
                 new_parameters = False
                 break
 

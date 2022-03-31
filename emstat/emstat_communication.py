@@ -9,11 +9,11 @@ import numpy as np
 from system_data import System_Data
 
 #User inputs
-technique = 2 #square wave voltammetry
-cr_min = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 100uA, 6: 1mA, 7: 10mA, user input
-cr_max = 5 # max current range, user input
-cr = 3 #Starting current range, user input
-measure_i_forward_reverse = True #user input
+# technique = 2 #square wave voltammetry
+# cr_min = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 100uA, 6: 1mA, 7: 10mA, user input
+# cr_max = 5 # max current range, user input
+# cr = 3 #Starting current range, user input
+# measure_i_forward_reverse = True #user input
 cell_on_post_measure = False #user input
 
 
@@ -115,8 +115,8 @@ class Emstat:
         L_command = ("technique=7\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
         {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstby={}\nnPoints= \
         {}\ntInt={}\nmux_delay=0\nnmux={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
-        (zero, 0, zero, 0, 0, cr_min, cr_max, \
-        cr, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
+        (zero, 0, zero, 0, 0, system_data.cr_min, system_data.cr_max, \
+        system_data.cr_begin, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
 
         # (eCond = zero, tCond = 0, eDep = zero, tDep = 0, tEquil = 0, cr_min, cr_max, \
         # cr, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
@@ -377,7 +377,7 @@ class Emstat:
     def format_swv_parameters(self, t_equil, e_begin, e_end, e_step, amplitude, freq, e_cond, t_cond):
         #options
         options = 0
-        if measure_i_forward_reverse: options += 1024
+        if system_data.measure_i_forward_reverse: options += 1024
         if cell_on_post_measure: options += 4
         #n_points
         nPoints = int((e_end - e_begin) / e_step + 1)
@@ -395,10 +395,10 @@ class Emstat:
         #tInt
         tInt = self.tint_calc(1 / freq)
         #format ascii command
-        L_command = ("technique={}\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
+        L_command = ("technique=2\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
         {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstep={}\nEpulse={}\nnPoints= \
         {}\ntInt={}\ntPulse={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
-        (technique, e_cond, t_cond, 0, 0, t_equil, cr_min, cr_max, cr, Ebegin, \
+        (e_cond, t_cond, 0, 0, t_equil, system_data.cr_min, system_data.cr_max, system_data.cr_begin, Ebegin, \
         Estep, Epulse, nPoints, tInt, tPulse, d1, d16, options, nadmean))
         # print(L_command)
         return L_command
