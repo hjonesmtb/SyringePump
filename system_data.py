@@ -241,8 +241,8 @@ class System_Data:
         return system_data
 
     def plot_data(self):
-        cmap = cm.get_cmap('gist_rainbow', int(10))
-        colour = cmap((self.measurements % self.n_measurements) / 10)
+        cmap = cm.get_cmap('gist_rainbow', int(self.n_measurements))
+        colour = cmap((self.measurements / self.n_measurements))
         if self.test_type == 'Stop-Flow':
             self.ax_swv[0].set_title('Square Wave Current at ' + str(self.frequencies[0])+ 'Hz')
             self.ax_swv[1].set_title('Square Wave Current at ' + str(self.frequencies[1])+ 'Hz')
