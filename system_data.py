@@ -55,8 +55,8 @@ class System_Data:
         self.valve_turned = False
         self.measurement_time = 0
         # measurment data
-        self.current_swv = []
-        self.potential_swv = []
+        self.current_swv = [[]]
+        self.potential_swv = [[]]
         self.overload_swv = []
         self.underload_swv = []
         self.current_dep = []
@@ -80,7 +80,7 @@ class System_Data:
         #plot axes
         self.figsize = FIGSIZE
         self.ax_dep = []
-        self.ax_swv = []
+        self.ax_swv = [[]]
         self.ax_cyclic = []
         self.ax_chrono = []
         self.line_dep = []
@@ -140,10 +140,10 @@ class System_Data:
         self.data_folder = os.path.join(self.path, self.test_name)
         return
 
-    def write_swv(self,time, pot, cur, over, under):
+    def write_swv(self,time, pot, cur, over, under, freq_index):
         self.time.append(time[-1])
-        self.potential_swv = pot
-        self.current_swv = cur
+        self.potential_swv[freq_index] = pot
+        self.current_swv[freq_index] = cur
         self.overload_swv = over
         self.underload_swv = under
         self.total_potential.append(pot[-1])
@@ -173,7 +173,7 @@ class System_Data:
         #save the csv
         total_data = {'Time':self.time, 'Potential':self.total_potential,'Current':self.total_current,}
         total_data = pad_dict_list(total_data, 0)
-        data_dict = {'Potential_dep':self.potential_dep, 'Current_dep':self.current_dep,'Potential_SWV':self.potential_swv, 'Current_SWV':self.current_swv,}
+        data_dict = {'Potential_dep':self.potential_dep, 'Current_dep':self.current_dep,'Potential_'+str(self.frequencies[0]):self.potential_swv[0], 'Current_'+str(self.frequencies[0]):self.current_swv[0],'Potential_'+str(self.frequencies[1]):self.potential_swv[1], 'Current_'+str(self.frequencies[1]):self.current_swv[1],'Potential_'+str(self.frequencies[2]):self.potential_swv[2], 'Current_'+str(self.frequencies[2]):self.current_swv[2],}
         data_dict = pad_dict_list(data_dict, 0)
         df = pd.DataFrame(data_dict)
         df.to_csv(self.data_folder + '/csv/' + str(self.measurements) + '.csv', index=False)
@@ -223,7 +223,7 @@ class System_Data:
         return system_data
 
     def plot_data(self):
-        cmap = cm.get_cmap('rainbow', int(10))
+        cmap = cm.get_cmap('gist_ncar', int(10))
         colour = cmap(self.measurements % self.n_measurements / 10)
         if self.test_type == 'Stop-Flow':
             length = get_min_length(self.time_dep, self.current_dep)
@@ -243,7 +243,9 @@ class System_Data:
                 #self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
             length = get_min_length(self.potential_swv, self.current_swv)
             if(length >1):
-                self.ax_swv.plot(self.potential_swv[0:length-1],self.current_swv[0:length-1], color = colour, label=str(self.measurements+1))
+                self.ax_swv[0].plot(self.potential_swv[0][0:length-1],self.current_swv[0][0:length-1], color = colour, label=str(self.measurements+1))
+                self.ax_swv[1].plot(self.potential_swv[1][0:length-1],self.current_swv[1][0:length-1], color = colour, label=str(self.measurements+1))
+                self.ax_swv[2].plot(self.potential_swv[2][0:length-1],self.current_swv[2][0:length-1], color = colour, label=str(self.measurements+1))
                 legend_without_duplicate_labels(self.ax_swv)
 
             self.fig_agg.draw()
@@ -280,15 +282,25 @@ class System_Data:
         if self.test_type == 'Stop-Flow':
             self.fig = plt.figure(1, figsize = self.figsize)
             self.fig.clf()
-            self.ax_dep = self.fig.add_subplot(121)
+            self.ax_dep = self.fig.add_subplot(221)
             self.ax_dep.set_xlabel('Time(s)')
             self.ax_dep.set_ylabel('Current (uA) at ' + str(self.e_dep) + 'V')
             self.ax_dep.set_title('Deposition Current')
 
-            self.ax_swv = self.fig.add_subplot(122)
-            self.ax_swv.set_xlabel('Potential (V)')
-            self.ax_swv.set_ylabel('Current (uA)')
-            self.ax_swv.set_title('Square Wave Current')
+            self.ax_swv[0] = self.fig.add_subplot(222)
+            self.ax_swv[0].set_xlabel('Potential (V)')
+            self.ax_swv[0].set_ylabel('Current (uA)')
+            self.ax_swv[0].set_title('Square Wave Current at ' + str(self.frequencies[0])+ 'Hz')
+
+            self.ax_swv[1] = self.fig.add_subplot(223)
+            self.ax_swv[1].set_xlabel('Potential (V)')
+            self.ax_swv[1].set_ylabel('Current (uA)')
+            self.ax_swv[1].set_title('Square Wave Current at '+ str(self.frequencies[0])+ 'Hz')
+
+            self.ax_swv[2] = self.fig.add_subplot(224)
+            self.ax_swv[2].set_xlabel('Potential (V)')
+            self.ax_swv[2].set_ylabel('Current (uA)')
+            self.ax_swv[2].set_title('Square Wave Current at '+ str(self.frequencies[2])+ 'Hz')
             
 
         elif self.test_type == 'Chronoamperometry':
@@ -309,8 +321,8 @@ class System_Data:
         self.draw_figure()
 
     def reset_measurement_arrays(self):
-        self.current_swv = []
-        self.potential_swv = []
+        self.current_swv = [[]]
+        self.potential_swv = [[]]
         self.overload_swv = []
         self.underload_swv = []
         self.current_dep = []
