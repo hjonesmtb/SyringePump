@@ -37,7 +37,7 @@ N_MEASUREMENTS = 10
 N_ELECTRODES = 1
 T_DEPOSITION = INFUSION_VOLUME / N_MEASUREMENTS / (FLOW_RATE * FLOWRATE_CONVERSION)
 STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
-FIGSIZE = (20,6)
+FIGSIZE = (20,12)
 PATH = os.getcwd()
 PUMP_SCALE = 20 #cuts off first few points of the first deposition during stop flow.
 MAX_PLOTS = 5
@@ -55,8 +55,8 @@ class System_Data:
         self.valve_turned = False
         self.measurement_time = 0
         # measurment data
-        self.current_swv = [[]]
-        self.potential_swv = [[]]
+        self.current_swv = [[0], [0], [0]]
+        self.potential_swv =  [[0], [0], [0]]
         self.overload_swv = []
         self.underload_swv = []
         self.current_dep = []
@@ -80,7 +80,7 @@ class System_Data:
         #plot axes
         self.figsize = FIGSIZE
         self.ax_dep = []
-        self.ax_swv = [[]]
+        self.ax_swv = [0, 0, 0]
         self.ax_cyclic = []
         self.ax_chrono = []
         self.line_dep = []
@@ -223,9 +223,12 @@ class System_Data:
         return system_data
 
     def plot_data(self):
-        cmap = cm.get_cmap('gist_ncar', int(10))
-        colour = cmap(self.measurements % self.n_measurements / 10)
+        cmap = cm.get_cmap('gist_rainbow', int(10))
+        colour = cmap((self.measurements % self.n_measurements) / 10)
         if self.test_type == 'Stop-Flow':
+            self.ax_swv[0].set_title('Square Wave Current at ' + str(self.frequencies[0])+ 'Hz')
+            self.ax_swv[1].set_title('Square Wave Current at ' + str(self.frequencies[1])+ 'Hz')
+            self.ax_swv[2].set_title('Square Wave Current at ' + str(self.frequencies[2])+ 'Hz')
             length = get_min_length(self.time_dep, self.current_dep)
             if(self.measurements == 1):
                 self.ax_dep.cla()
@@ -241,12 +244,17 @@ class System_Data:
                 self.ax_dep.set_title('Deposition Current at ' + str(self.e_dep) + 'V')
                 self.ax_dep.plot(self.time_dep[PUMP_SCALE-1:length-1],self.current_dep[PUMP_SCALE-1:length-1], color = colour)
                 #self.ax_dep.set_xlim(self.time_dep[0], self.time_dep[-1])
-            length = get_min_length(self.potential_swv, self.current_swv)
+            length = get_min_length(self.potential_swv[0], self.current_swv[0])
             if(length >1):
                 self.ax_swv[0].plot(self.potential_swv[0][0:length-1],self.current_swv[0][0:length-1], color = colour, label=str(self.measurements+1))
+            length = get_min_length(self.potential_swv[1], self.current_swv[1])
+            if(length >1):
                 self.ax_swv[1].plot(self.potential_swv[1][0:length-1],self.current_swv[1][0:length-1], color = colour, label=str(self.measurements+1))
+            length = get_min_length(self.potential_swv[2], self.current_swv[2])
+            if(length >1):
                 self.ax_swv[2].plot(self.potential_swv[2][0:length-1],self.current_swv[2][0:length-1], color = colour, label=str(self.measurements+1))
-                legend_without_duplicate_labels(self.ax_swv)
+            
+            legend_without_duplicate_labels(self.ax_swv[0])
 
             self.fig_agg.draw()
 
@@ -295,7 +303,7 @@ class System_Data:
             self.ax_swv[1] = self.fig.add_subplot(223)
             self.ax_swv[1].set_xlabel('Potential (V)')
             self.ax_swv[1].set_ylabel('Current (uA)')
-            self.ax_swv[1].set_title('Square Wave Current at '+ str(self.frequencies[0])+ 'Hz')
+            self.ax_swv[1].set_title('Square Wave Current at '+ str(self.frequencies[1])+ 'Hz')
 
             self.ax_swv[2] = self.fig.add_subplot(224)
             self.ax_swv[2].set_xlabel('Potential (V)')
@@ -321,8 +329,8 @@ class System_Data:
         self.draw_figure()
 
     def reset_measurement_arrays(self):
-        self.current_swv = [[]]
-        self.potential_swv = [[]]
+        self.current_swv =  [[0], [0], [0]]
+        self.potential_swv =  [[0], [0], [0]]
         self.overload_swv = []
         self.underload_swv = []
         self.current_dep = []
