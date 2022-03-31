@@ -8,15 +8,7 @@ import math
 import numpy as np
 from system_data import System_Data
 
-#User inputs
-# technique = 2 #square wave voltammetry
-# cr_min = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 100uA, 6: 1mA, 7: 10mA, user input
-# cr_max = 5 # max current range, user input
-# cr = 3 #Starting current range, user input
-# measure_i_forward_reverse = True #user input
 cell_on_post_measure = False #user input
-
-
 
 #emstat 3 constants
 dac_factor = 1.599 #DAC factor specific to emstat3
@@ -26,9 +18,7 @@ v_range = 3 #specific to emstat3
 
 class Emstat:
     def __init__(self, pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequencies, system_data):
-        # print(frequencies)
         try:
-            #self.ser = serial.Serial('COM{}'.format(pstat_com), baudrate=230400, timeout = 1)
             self.ser = serial.Serial(str(pstat_com), baudrate=230400, timeout = 1)
             if self.ser.isOpen():
                 print("port opened successfully")
@@ -39,8 +29,6 @@ class Emstat:
                     print("port opened successfully")
             except:
                 print("COM port is not available")
-        # print(frequencies)
-        # self.swv_params = self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequencies, e_cond, t_cond)
         self.deposition_potential = e_dep
         self.system_data = system_data
 
@@ -82,13 +70,6 @@ class Emstat:
         n_channels = 1
 
         if n_channels == 1:
-            # self.emstat_ready('c')
-            # self.sendData('m' + nonsensing_channel)
-            # command = self.potential_to_cmd(nonsensing_dep, False)
-            # command = 'D' + command
-            # self.sendData(command)
-
-            # self.sendData('m' + sensing_channel)
             self.chronoamp(sensing_dep, n_channels, dep_time, pump)
 
         if n_channels == 2:
@@ -121,8 +102,6 @@ class Emstat:
         self.emstat_ready("L")
         self.sendData(L_command)
 
-        print(L_command)
-
         if n_channels > 1:
             P_data = []
             char = self.readData(1).decode()
@@ -135,11 +114,9 @@ class Emstat:
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
-                # print(package)
                 if len(package) != 8*n_channels: #Check to make sure packages are the right length
                     raise ValueError('P package not 8*n_channels characters')
                 P_data.append(package)
-                #time_log.append(time.time()-starttime)
         else:
             potential_dep = [] #array to store potential from deposition for this run
             current_dep = [] #array to store current from deposition for this run
@@ -167,19 +144,15 @@ class Emstat:
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
-                #print(package)
                 if len(package) != 16: #Check to make sure packages are the right length
                     print('U package not 16 characters')
                 else:
                     time_log.append(time.time()-self.system_data.start_time)
-                    # print("wrote to time")
                     potential, current, current_overload, current_underload = self.process_U(package)
                     potential_dep.append(potential)
                     current_dep.append(current)
-                    # print("wrote to current")
                     overload_dep.append(current_overload)
                     underload_dep.append(current_underload)
-                    # print("dep", potential, current)
                     self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
         return
 
@@ -193,8 +166,6 @@ class Emstat:
         while char != key:
             char = self.readData(1).decode()
             count += 1
-            # if count > 100:
-            #     self.sendData(key) #Try again
         return
 
     '''Checks if pstat needs to stop'''
@@ -278,10 +249,7 @@ class Emstat:
         T_data = [] #string array to store T packages from measurement (during steady state)
         U_data = [] #string array to store U packages from measurement (during SWV)
 
-        # print('frequency', self.system_data.frequencies[self.system_data.measurements%3])
-        # self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequencies, e_cond, t_cond)
         swv_params = self.format_swv_parameters(self.system_data.t_equil, self.system_data.e_begin, self.system_data.e_end, self.system_data.e_step, self.system_data.amplitude, self.system_data.frequencies[frequency_index], self.system_data.e_cond, self.system_data.t_cond)
-
 
         self.sendData("J") # disables idle packages
         self.ser.flush() #clears the buffer
@@ -382,7 +350,6 @@ class Emstat:
         {}\ntInt={}\ntPulse={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
         (e_cond, t_cond, 0, 0, t_equil, self.system_data.cr_min, self.system_data.cr_max, self.system_data.cr_begin, Ebegin, \
         Estep, Epulse, nPoints, tInt, tPulse, d1, d16, options, nadmean))
-        # print(L_command)
         return L_command
 
     #Calculates d1, d16 and nadmean from tmeas. See p. 24 of comm protocol

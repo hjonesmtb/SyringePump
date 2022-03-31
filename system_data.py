@@ -47,6 +47,7 @@ INITIAL_PUMP_TIME = 240
 CR_MIN = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 100uA, 6: 1mA, 7: 10mA, user input
 CR_MAX = 5 # max current range, user input
 CR_BEGIN = 3 #Starting current range, user input
+INIT_PUMP_SPEED = 1000
 
 
 class System_Data:
@@ -59,7 +60,8 @@ class System_Data:
         self.inject_time = 0 #Time user turns valve
         self.valve_turned = False
         self.measurement_time = 0
-        # measurment data
+        self.initial_pump_speed = INIT_PUMP_SPEED
+        # measurement data
         self.current_swv = [[0], [0], [0]]
         self.potential_swv =  [[0], [0], [0]]
         self.overload_swv = []
