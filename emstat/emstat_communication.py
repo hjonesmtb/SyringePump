@@ -99,9 +99,8 @@ class Emstat:
     def chronoamp(self, potential, n_channels, dep_time):
         zero = self.potential_to_cmd(0) #convert 0V to bytes
         e_constant = self.potential_to_cmd(potential) #convert set potential to bytes
-        if n_channels == 1:
-            tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
-        if n_channels == 2:
+        tInt = 1 / self.system_data.frequency_dep #set tInt. Cannot be less than 0.25s if multiplexer present
+        if n_channels == 2 and tInt > 0.25:
             tInt = 0.25 #set tInt. Cannot be less than 0.25s if multiplexer present
         nPoints = dep_time / tInt + 1 #define the number of points
         tmeas = tInt / 2 #defined p. 32 of comm protocol

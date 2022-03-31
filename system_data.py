@@ -30,6 +30,7 @@ E_BEGIN = -0.4  # V
 E_STOP = 0.4  # V
 E_STEP = 0.005  # V
 AMPLITUDE = 0.01  # V
+FREQUENCY_DEP = 10 #Hz
 FREQUENCIES = [37, 25, 7] # Hz
 FLOW_RATE = 1000  # uL/min
 INFUSION_VOLUME = 1  # mL
@@ -109,6 +110,7 @@ class System_Data:
             self.t_equil = T_EQUILIBRATION
             self.amplitude = AMPLITUDE
             self.frequencies = FREQUENCIES
+            self.frequency_dep = FREQUENCY_DEP
             self.n_measurements = N_MEASUREMENTS
             self.step_volume = STEP_VOLUME
             self.syringe_diam = SYRINGE_DIAM
@@ -131,6 +133,7 @@ class System_Data:
             self.t_equil = data_dict["t_equil"]
             self.amplitude = data_dict["amplitude"]
             self.frequencies = data_dict["frequencies"]
+            self.frequency_dep = data_dict["frequency_dep"]
             self.n_measurements = data_dict["n_measurements"]
             self.step_volume = data_dict["step_volume"]
             self.syringe_diam = data_dict["syringe_diam"]
@@ -160,7 +163,7 @@ class System_Data:
         self.total_current.append(cur[-1])
 
     def save_data(self):
-        #create directory if one does not already exist. 
+        #create directory if one does not already exist.
         #this will always happen when the test is started.
         if not os.path.exists(self.data_folder):
             os.makedirs(self.data_folder)
@@ -169,7 +172,7 @@ class System_Data:
         jsonFile = self.data_folder + '/config.json'
         with open(jsonFile, "w") as write_file:
             json.dump(self.encode_system_data(), write_file)
-        
+
         #save the csv
         total_data = {'Time':self.time, 'Potential':self.total_potential,'Current':self.total_current,}
         total_data = pad_dict_list(total_data, 0)
@@ -201,6 +204,7 @@ class System_Data:
             "t_equil": self.t_equil,
             "amplitude" : self.amplitude,
             "frequencies" : self.frequencies,
+            "frequency_dep" : self.frequency_dep,
             "n_measurements" : self.n_measurements,
             "step_volume": self.step_volume,
             "syringe_diam" : self.syringe_diam,
@@ -258,7 +262,7 @@ class System_Data:
             length = get_min_length(self.time_dep, self.current_dep)
             if(length >1):
                 self.ax_chrono.plot(self.time_dep[0:length-1],self.current_dep[0:length-1], color = colour)
-                
+
             self.fig_agg.draw()
         return
 
@@ -289,7 +293,7 @@ class System_Data:
             self.ax_swv.set_xlabel('Potential (V)')
             self.ax_swv.set_ylabel('Current (uA)')
             self.ax_swv.set_title('Square Wave Current')
-            
+
 
         elif self.test_type == 'Chronoamperometry':
             self.fig = plt.figure(1, figsize = self.figsize)
