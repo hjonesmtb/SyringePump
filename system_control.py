@@ -305,9 +305,12 @@ def stop_flow(pump, pstat, valve_turned, system_data):
         pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
         print("swv test")
         pump.stop()
-        pstat.run_swv(0)
-        pstat.run_swv(1)
-        pstat.run_swv(2)
+        if system_data.frequencies[0] != 0:
+            pstat.run_swv(0)
+        if system_data.frequencies[1] != 0:
+            pstat.run_swv(1)
+        if system_data.frequencies[2] != 0:
+            pstat.run_swv(2)
 
 def chrono(pump, pstat, valve_turned, system_data):
     if not valve_turned:

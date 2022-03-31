@@ -367,7 +367,7 @@ class Emstat:
                     underload_swv.append(current_underload)
                     time_swv.append(time.time()- self.system_data.start_time)
                     # print("swv", potential, current)
-                    self.system_data.write_swv(time_swv, potential_swv, current_swv, overload_swv, underload_swv)
+                    self.system_data.write_swv(time_swv, potential_swv, current_swv, overload_swv, underload_swv, frequency_index)
             print("measurement complete")
         except Exception as e:
             print("Process terminated")
