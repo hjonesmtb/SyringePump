@@ -232,17 +232,17 @@ def parameter_window_process(system_data):
                 print(event, values)
                 system_data.test_name = values['-TestName-']
                 system_data.n_measurements = float(values['-NMeasurements-'])
-                system_data.step_volume = float(values['-StepVolume-'])/1000
-                system_data.flow_rate = float(values['-FlowRate-'])
-                system_data.e_cond, system_data.t_cond = float(values['-E_cond-']), float(values['-T_cond-'])
+                system_data.step_volume = int(values['-StepVolume-'])/1000
+                system_data.flow_rate = int(values['-FlowRate-'])
+                system_data.e_cond, system_data.t_cond = float(values['-E_cond-']), int(values['-T_cond-'])
                 system_data.e_dep = float(values['-E_dep-'])
-                system_data.t_equil = float(values['-T_equil-'])
-                system_data.t_equil_deposition = float(values['-T_equil_deposition-'])
+                system_data.t_equil = int(values['-T_equil-'])
+                system_data.t_equil_deposition = int(values['-T_equil_deposition-'])
                 system_data.e_begin, system_data.e_end, system_data.e_step = float(values['-E_begin-']), float(values['-E_end-']), float(values['-E_step-'])
                 system_data.amplitude = float(values['-Amp-'])
                 system_data.frequencies =  [float(values['-Freq_1-']), float(values['-Freq_2-']), float(values['-Freq_3-'])]
                 system_data.frequency_dep = float(values['-Freq_dep-'])
-                system_data.t_dep = float(system_data.step_volume) / (float(system_data.flow_rate)*system_data.flowrate_conversion) #s/measurement
+                system_data.t_dep = int(float(system_data.step_volume) / (float(system_data.flow_rate)*system_data.flowrate_conversion)) #s/measurement
                 system_data.cr_min = int(values['-cr_min-'])
                 system_data.cr_max = int(values['-cr_max-'])
                 system_data.cr_begin = int(values['-cr_begin-'])
@@ -254,9 +254,9 @@ def parameter_window_process(system_data):
                 print(event, values)
                 system_data.test_name = values['-TestName-']
                 system_data.flow_rate = float(values['-FlowRate-'])
-                system_data.t_equil_deposition = float(values['-T_equil_deposition-'])
+                system_data.t_equil_deposition = int(values['-T_equil_deposition-'])
                 system_data.e_dep = float(values['-E_dep-'])
-                system_data.t_dep = float(values['-T_dep-']) #s/measurement
+                system_data.t_dep = int(values['-T_dep-']) #s/measurement
                 system_data.frequency_dep = float(values['-Freq_dep-'])
                 system_data.n_measurements = 1
                 system_data.cr_min = int(values['-cr_min-'])
