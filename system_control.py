@@ -36,7 +36,7 @@ CONFIG_FILE = r'C:\Users\mykal\OneDrive - UBC\Capstone\SyringePump\data\Stop-Flo
 #This class will hold the data read from the potentiostat for generating plots and saving to a .csv
 
 #can be loaded from a custom config file.
-system_data = System_Data.load_system_data_from_json(CONFIG_FILE)
+# system_data = System_Data.load_system_data_from_json(CONFIG_FILE)
 
 #boiler plate code for USB port selection page.
 def test_settings_window(system_data):
@@ -389,7 +389,6 @@ def main():
         stopped = False
         system_data = System_Data()
         while True:
-
             if(new_parameters):
                 test_setting_process(system_data)
                 window, new_parameters = parameter_window_process(system_data)
