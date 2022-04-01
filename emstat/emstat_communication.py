@@ -23,12 +23,10 @@ class Emstat:
             if self.ser.isOpen():
                 print("port opened successfully")
         except:
-            try:
-                self.ser = serial.Serial(pstat_com, baudrate=230400, timeout = 1)
-                if self.ser.isOpen():
-                    print("port opened successfully")
-            except:
-                print("COM port is not available")
+            self.ser = serial.Serial(pstat_com, baudrate=230400, timeout = 1)
+            if self.ser.isOpen():
+                print("port opened successfully")
+
         self.deposition_potential = e_dep
         self.system_data = system_data
 
