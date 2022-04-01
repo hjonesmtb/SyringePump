@@ -30,7 +30,7 @@ from system_data import System_Data
 
 SYMBOL_UP =    '▲'
 SYMBOL_DOWN =  '▼'
-CONFIG_FILE = r'C:\Users\mykal\OneDrive - UBC\Capstone\SyringePump\data\Stop-Flow_22-03-31_1215/config.json'
+CONFIG_FILE = './config.json'
 
 #System_Data class is initialized with default values.
 #This class will hold the data read from the potentiostat for generating plots and saving to a .csv
@@ -140,7 +140,7 @@ def chronoamp_format(system_data):
             [sg.Text('Frequency [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequency_dep, key='-Freq_dep-')],
             [sg.Text('Current range min (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_min, key='-cr_min-')],
             [sg.Text('Current range max (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_max, key='-cr_max-')],
-            [sg.Text('Current range starting (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_begin, key='-cr_max-')],
+            [sg.Text('Current range starting (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_begin, key='-cr_begin-')],
             ]
     return chrono_parameters
 
@@ -259,9 +259,9 @@ def parameter_window_process(system_data):
                 system_data.t_dep = float(values['-T_dep-']) #s/measurement
                 system_data.frequency_dep = float(values['-Freq_dep-'])
                 system_data.n_measurements = 1
-                system_data.cr_min = float(values['-cr_min-'])
-                system_data.cr_max = float(values['-cr_max-'])
-                system_data.cr_begin = float(values['-cr_begin-'])
+                system_data.cr_min = int(values['-cr_min-'])
+                system_data.cr_max = int(values['-cr_max-'])
+                system_data.cr_begin = int(values['-cr_begin-'])
                 new_parameters = False
                 break
 
