@@ -25,7 +25,8 @@ PSTAT_COM = "COM6"
 E_CONDITION = 0  # V
 T_CONDITION = 0  # s
 E_DEPOSITION = 0.8  # V
-T_EQUILIBRATION = 0  # s
+T_EQUILIBRATION = 2  # s
+T_EQUILIBRATION_DEPOSITION = 2 #s
 E_BEGIN = -0.4  # V
 E_STOP = 0.4  # V
 E_STEP = 0.005  # V
@@ -43,6 +44,10 @@ PATH = os.getcwd()
 PUMP_SCALE = 20 #cuts off first few points of the first deposition during stop flow.
 MAX_PLOTS = 5
 INITIAL_PUMP_TIME = 240
+CR_MIN = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 100uA, 6: 1mA, 7: 10mA, user input
+CR_MAX = 5 # max current range, user input
+CR_BEGIN = 3 #Starting current range, user input
+INIT_PUMP_SPEED = 1000
 
 
 class System_Data:
@@ -55,7 +60,8 @@ class System_Data:
         self.inject_time = 0 #Time user turns valve
         self.valve_turned = False
         self.measurement_time = 0
-        # measurment data
+        self.initial_pump_speed = INIT_PUMP_SPEED
+        # measurement data
         self.current_swv = [[0], [0], [0]]
         self.potential_swv =  [[0], [0], [0]]
         self.overload_swv = []
@@ -91,6 +97,8 @@ class System_Data:
         self.fig = None
         self.canvas = None
 
+        self.measure_i_forward_reverse = False
+
 
         if data_dict == None:
             print("No JSON file found, loading in default values...")
@@ -108,6 +116,7 @@ class System_Data:
             self.t_cond = T_CONDITION
             self.t_dep = T_DEPOSITION
             self.t_equil = T_EQUILIBRATION
+            self.t_equil_deposition = T_EQUILIBRATION_DEPOSITION
             self.amplitude = AMPLITUDE
             self.frequencies = FREQUENCIES
             self.frequency_dep = FREQUENCY_DEP
@@ -115,6 +124,9 @@ class System_Data:
             self.step_volume = STEP_VOLUME
             self.syringe_diam = SYRINGE_DIAM
             self.n_electrodes = N_ELECTRODES
+            self.cr_min = CR_MIN
+            self.cr_max = CR_MAX
+            self.cr_begin = CR_BEGIN
         #loads config files
         else:
             # test types
@@ -131,6 +143,7 @@ class System_Data:
             self.t_cond = data_dict["t_cond"]
             self.t_dep = data_dict["t_dep"]
             self.t_equil = data_dict["t_equil"]
+            self.t_equil_deposition = data_dict["t_equil_deposition"]
             self.amplitude = data_dict["amplitude"]
             self.frequencies = data_dict["frequencies"]
             self.frequency_dep = data_dict["frequency_dep"]
@@ -138,6 +151,9 @@ class System_Data:
             self.step_volume = data_dict["step_volume"]
             self.syringe_diam = data_dict["syringe_diam"]
             self.n_electrodes = data_dict["n_electrodes"]
+            self.cr_min = data_dict["cr_min"]
+            self.cr_max = data_dict["cr_max"]
+            self.cr_begin = data_dict["cr_begin"]
 
         self.path = PATH + '\data'
         self.data_folder = os.path.join(self.path, self.test_name)
@@ -202,13 +218,17 @@ class System_Data:
             "t_cond" : self.t_cond,
             "t_dep" : self.t_dep,
             "t_equil": self.t_equil,
+            "t_equil_deposition": self.t_equil_deposition,
             "amplitude" : self.amplitude,
             "frequencies" : self.frequencies,
             "frequency_dep" : self.frequency_dep,
             "n_measurements" : self.n_measurements,
             "step_volume": self.step_volume,
             "syringe_diam" : self.syringe_diam,
-            "n_electrodes" : self.n_electrodes
+            "n_electrodes" : self.n_electrodes,
+            "cr_min" : self.cr_min,
+            "cr_max" : self.cr_max,
+            "cr_begin" : self.cr_begin
             }
             return data_dict
         else:

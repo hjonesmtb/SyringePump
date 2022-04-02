@@ -36,7 +36,7 @@ CONFIG_FILE = './config.json'
 #This class will hold the data read from the potentiostat for generating plots and saving to a .csv
 
 #can be loaded from a custom config file.
-#system_data = System_Data.load_system_data_from_json(CONFIG_FILE)
+# system_data = System_Data.load_system_data_from_json(CONFIG_FILE)
 
 #boiler plate code for USB port selection page.
 def test_settings_window(system_data):
@@ -61,8 +61,8 @@ def test_settings_gui_format(usbs, port_name, system_data):
             [sg.Text('Test Type', size=(20, 1), font='Helvetica 14'), sg.Combo(system_data.test_types, size=(20,1),default_value=system_data.test_type,key=('-TestType-'))],
             [sg.Text('# Electrodes', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.n_electrodes, key=('-NElectrodes-'))],
             [sg.Text('Syringe Diameter [mm]', size=(20,1), font='Helvetica 14'), sg.InputText(system_data.syringe_diam, key=('-SyringeDiam-'))],
-            [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 14'), sg.Combo(port_name, size=(20,1),key=('-PumpPort-'), default_value=[usb.name for usb in usbs if "Prolific" in usb])],
-            [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 14'), sg.Combo(port_name, size=(20,1),key=("-PStatPort-"))],
+            [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 14'), sg.Combo(port_name, size=(20,1),key=('-PumpPort-'), default_value=system_data.pump_com)],
+            [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 14'), sg.Combo(port_name, size=(20,1), default_value=system_data.pstat_com, key=("-PStatPort-"))],
             [sg.Text('List of Detected Ports', size=(20, 1), font='Helvetica 14'), sg.Listbox(usbs, size=(40, len(usbs)), key=("-usbs-"))],
             [sg.Canvas(key='-controls_cv-')],
             [sg.Button('Next', size=(15, 1), pad=((280, 0), 3), font='Helvetica 14')],
@@ -101,7 +101,7 @@ def swv_format(system_data):
             [sg.Text('Flow', size=(20, 1), font='Helvetica 14')],
             [sg.Text('E condition [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_cond, key='-E_cond-')],
             [sg.Text('t condition [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_cond, key='-T_cond-')],
-            # [sg.Text('t equilibration dep [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil_deposition, key='-T_equil_deposition-')],
+            [sg.Text('t equilibration dep [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil_deposition, key='-T_equil_deposition-')],
             [sg.Text('t equilibration swv [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil, key='-T_equil-')],
             [sg.Text('E begin [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_begin, key='-E_begin-')],
             [sg.Text('E stop [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_end, key='-E_end-')],
@@ -111,6 +111,10 @@ def swv_format(system_data):
             [sg.Text('Frequency 1 swv [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[0], key='-Freq_1-')],
             [sg.Text('Frequency 2 swv [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[1], key='-Freq_2-')],
             [sg.Text('Frequency 3 swv [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequencies[2], key='-Freq_3-')],
+            [sg.Text('Current range min (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_min, key='-cr_min-')],
+            [sg.Text('Current range max (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_max, key='-cr_max-')],
+            [sg.Text('Current range starting (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_begin, key='-cr_begin-')],
+            [sg.Checkbox(text='Measure i forward only', font='Helvetica 14',key='-Measure_i_forward-')],
             ]
     return swv_parameters
 
@@ -131,9 +135,12 @@ def chronoamp_format(system_data):
             [sg.Text('Test Name', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.test_name, key=('-TestName-'))],
             [sg.Text('Flow rate [uL/min]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.flow_rate, key=('-FlowRate-'))],
             [sg.Text('E deposition [V]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.e_dep, key='-E_dep-')],
-            [sg.Text('t equilibration [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil, key='-T_equil-')],
+            [sg.Text('t equilibration [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_equil_deposition, key='-T_equil_deposition-')],
             [sg.Text('t run [s]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.t_dep, key='-T_dep-')],
             [sg.Text('Frequency [Hz]', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.frequency_dep, key='-Freq_dep-')],
+            [sg.Text('Current range min (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_min, key='-cr_min-')],
+            [sg.Text('Current range max (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_max, key='-cr_max-')],
+            [sg.Text('Current range starting (0-7)', size=(20, 1), font='Helvetica 14'), sg.InputText(system_data.cr_begin, key='-cr_begin-')],
             ]
     return chrono_parameters
 
@@ -147,7 +154,9 @@ def parameters_Format(system_data):
              sg.pin(sg.Button('Start', size=(15, 1), font='Helvetica 14', k = '-START-')),
              sg.pin(sg.Button('Stop', size=(15, 1), font='Helvetica 14'))],
             [sg.Text(key='-TEST_STATUS-', size=(30, 3), font='Helvetica 20')],
-            [sg.Text(key='-TEST_TIME-', size=(30, 1), font='Helvetica 20')
+            [sg.Text('Pump Control', size=(20, 1), justification='left', font='Helvetica 20')],
+            [sg.Text('Pump Speed [ul/min]', size=(30, 1), font='Helvetica 12'), sg.InputText(system_data.initial_pump_speed, key=('-PumpSpeed-'))],
+            [sg.Button('Flow', size=(15, 1), font='Helvetica 14', k = '-FLOW-'),sg.pin(sg.Button('Stop Pump', size=(15, 1), font='Helvetica 14', k = '-STOP_FLOW-'))
             ],
             ]
     col2 =[
@@ -200,12 +209,23 @@ def parameter_window_process(system_data):
             new_parameters = True
             window.close()
             break
-        window['-TEST_STATUS-'].update('Press Start to Start Pumping')
+        window['-TEST_STATUS-'].update('Press Start to Begin Test')
 
         if event.startswith('-OPEN SEC1-'):
             is_expanded = not is_expanded
             window['-OPEN SEC1-'].update(SYMBOL_DOWN if is_expanded else SYMBOL_UP)
             window['-SEC1-'].update(visible=is_expanded)
+
+        if event in ('-FLOW-', None):
+            system_data.flow_rate = float(values['-PumpSpeed-'])
+            pump = connect_to_pump(system_data)
+            pump.infuse()
+            window['-TEST_STATUS-'].update('Hit stop pump before starting test')
+            event, values = window.read(10)
+            while event != '-STOP_FLOW-':
+                event, values = window.read(10)
+            pump.stop()
+            pump.close()
 
         if event in ('-START-', None):
             if system_data.test_type == 'Stop-Flow':
@@ -213,15 +233,20 @@ def parameter_window_process(system_data):
                 system_data.test_name = values['-TestName-']
                 system_data.n_measurements = float(values['-NMeasurements-'])
                 system_data.step_volume = float(values['-StepVolume-'])/1000
-                system_data.flow_rate = float(values['-FlowRate-'])
-                system_data.e_cond, system_data.t_cond = float(values['-E_cond-']), float(values['-T_cond-'])
+                system_data.flow_rate = int(float(values['-FlowRate-']))
+                system_data.e_cond, system_data.t_cond = float(values['-E_cond-']), int(float(values['-T_cond-']))
                 system_data.e_dep = float(values['-E_dep-'])
-                system_data.t_equil = float(values['-T_equil-'])
+                system_data.t_equil = int(float(values['-T_equil-']))
+                system_data.t_equil_deposition = int(float(values['-T_equil_deposition-']))
                 system_data.e_begin, system_data.e_end, system_data.e_step = float(values['-E_begin-']), float(values['-E_end-']), float(values['-E_step-'])
                 system_data.amplitude = float(values['-Amp-'])
                 system_data.frequencies =  [float(values['-Freq_1-']), float(values['-Freq_2-']), float(values['-Freq_3-'])]
                 system_data.frequency_dep = float(values['-Freq_dep-'])
-                system_data.t_dep = float(system_data.step_volume) / (float(system_data.flow_rate)*system_data.flowrate_conversion) #s/measurement
+                system_data.t_dep = int(float(system_data.step_volume) / (float(system_data.flow_rate)*system_data.flowrate_conversion)) #s/measurement
+                system_data.cr_min = int(float(values['-cr_min-']))
+                system_data.cr_max = int(float(values['-cr_max-']))
+                system_data.cr_begin = int(float(values['-cr_begin-']))
+                system_data.measure_i_forward_reverse = values['-Measure_i_forward-']
                 new_parameters = False
                 break
 
@@ -229,11 +254,14 @@ def parameter_window_process(system_data):
                 print(event, values)
                 system_data.test_name = values['-TestName-']
                 system_data.flow_rate = float(values['-FlowRate-'])
-                system_data.t_equil = float(values['-T_equil-'])
+                system_data.t_equil_deposition = int(values['-T_equil_deposition-'])
                 system_data.e_dep = float(values['-E_dep-'])
-                system_data.t_dep = float(values['-T_dep-']) #s/measurement
+                system_data.t_dep = int(float(values['-T_dep-'])) #s/measurement
                 system_data.frequency_dep = float(values['-Freq_dep-'])
                 system_data.n_measurements = 1
+                system_data.cr_min = int(float(values['-cr_min-']))
+                system_data.cr_max = int(float(values['-cr_max-']))
+                system_data.cr_begin = int(float(values['-cr_begin-']))
                 new_parameters = False
                 break
 
@@ -242,7 +270,10 @@ def parameter_window_process(system_data):
 def connect_to_pump(system_data):
     pump = Pump.from_parameters(system_data)
     pump.set_diameter(system_data.syringe_diam) # Fixed syringe diameter
-    pump.set_rate(system_data.flow_rate,'uL/min')
+    if system_data.flow_rate <= 1000:
+        pump.set_rate(system_data.flow_rate,'uL/min')
+    else:
+        pump.set_rate(system_data.flow_rate / 1000,'mL/min')
     system_data.infusion_volume = system_data.step_volume*system_data.n_measurements
     pump.set_volume()
     pump.reset_acc() # reset accumulated volume to zero
@@ -289,10 +320,8 @@ def measurement_threader(pstat, pump, valve_turned, system_data):
 
     elif system_data.test_type == 'Cyclic voltammetry':
         print("Operation Not Supported")
-        #cyclic_measurements(pstat, pump)
     elif system_data.test_type == 'Pump':
         print("Operation Not Supported")
-        #pump_fluid(pump, window)
 
     #start saving the data once the sample has been injected.
     if valve_turned:
@@ -302,13 +331,10 @@ def measurement_threader(pstat, pump, valve_turned, system_data):
 
 def stop_flow(pump, pstat, valve_turned, system_data):
     if not valve_turned:
-        pump.infuse()
-        pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1])
+        pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1], pump)
 
     if valve_turned:
-        pump.infuse()
-        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
-        print("swv test")
+        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1], pump)
         pump.stop()
         if system_data.frequencies[0] != 0:
             pstat.run_swv(0)
@@ -319,12 +345,10 @@ def stop_flow(pump, pstat, valve_turned, system_data):
 
 def chrono(pump, pstat, valve_turned, system_data):
     if not valve_turned:
-        pump.infuse()
-        pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1])
+        pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1], pump)
 
     if valve_turned:
-        pump.infuse()
-        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
+        pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1], pump)
         pump.stop()
 
 
@@ -365,7 +389,6 @@ def main():
         stopped = False
         system_data = System_Data()
         while True:
-
             if(new_parameters):
                 test_setting_process(system_data)
                 window, new_parameters = parameter_window_process(system_data)
@@ -416,172 +439,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# def injection_countdown(event, window):
-#     # #  if event in ('-START-', None):
-#     # system_data.stop_pstat = True #Send flag to pstat to stop measurement
-
-#     #counts down for user to turn valve
-#     # countdown_start = time.time()
-#     # while time.time() - countdown_start < 5:
-#     #     window['-TEST_STATUS-'].update('Load Sample in {} seconds'.format(5 - round(time.time() - countdown_start)))
-#     #     window.read(10)
-#     # window['-TEST_STATUS-'].update('Turn Sample Valve')
-#     # window.read(10)
-#     system_data.inject_time = time.time() - system_data.start_time
-#     system_data.valve_turned = True
-
-
-
-# def stop_flow_measurements(pstat, pump, window):
-#     #start pump, output current
-#     pump.infuse()
-#     window['-TEST_STATUS-'].update('Initial flow-through phase. When system is ready (~60s), hit load sample to start the 5 second timer to load sample.')
-#     window['-START-'].update('Load Sample')
-
-#     #Step 1:Start pumping fluid until the user chooses to turn the valve
-#     window.perform_long_operation(lambda :
-#                                           pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1]),
-#                                           '-INITIAL_DONE-') #Depose for 4 minutes and plot data. Wait until user hits load sample.
-#     while True: #Loop to start pumping and get user to turn valve
-#         event, values = window.read(10)
-#         window['-TEST_TIME-'].update('Pumping time: {}'.format(round(time.time()-system_data.start_time)))
-#         system_data.plot_data()
-#         if event in ('-START-', None):
-#             system_data.stop_pstat = True #Send flag to pstat to stop measurement
-
-#             #counts down for user to turn valve
-#             countdown_start = time.time()
-#             while time.time() - countdown_start < 5:
-#                 window['-TEST_STATUS-'].update('Load Sample in {} seconds'.format(5 - round(time.time() - countdown_start)))
-#                 window.read(10)
-#             window['-TEST_STATUS-'].update('Turn Sample Valve')
-#             window.read(10)
-#             system_data.inject_time = time.time() - system_data.start_time
-#             system_data.valve_turned = True
-#             break
-#         if event in ('INITIAL_DONE'):
-#             window['-TEST_STATUS-'].update('Pump flowed for {} minutes, please restart'.format(system_data.initial_pump_time / 60))
-#             window.read(10)
-#             restart(pstat, pump, window)
-#         check_for_stop(pstat, pump, window, event)
-
-#     system_data.stop_pstat = False #Unsend flag to pstat to stop measurement
-
-#     #Step 2: Once valve is turned, cycle through deposition and swv measurements
-#     while True:
-#         system_data.measurements += 1
-#         print("m:" + str(system_data.measurements))
-#         window['-TEST_STATUS-'].update('Squarewave Measurement Running')
-
-#         #Step 2a: Deposition
-#         pump.infuse()
-#         system_data.measurement_time = time.time()
-#         window.perform_long_operation(lambda :
-#                                               pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1]),
-#                                               '-DEPOSITION_DONE-') #Deposition.
-#         while True: #Loop for deposition
-#             print("stuck" + str(system_data.measurements))
-#             event, values = window.read(10)
-#             system_data.plot_data()
-#             window['-TEST_TIME-'].update('Test time since valve turned: {}'.format(round(time.time()-system_data.inject_time)))
-#             window['-MEASUREMENT-'].update('Deposition, measurement #{}'.format(system_data.measurements))
-#             window['-TIME-'].update('Measurement Time: {}'.format(round(time.time()-system_data.measurement_time)))
-#             if event in ('-DEPOSITION_DONE-', None):
-#                 pump.stop()
-#                 break
-#             check_for_stop(pstat, pump, window, event)
-
-
-#         #Step 2b: SWV
-#         window.perform_long_operation(lambda :
-#                                               pstat.sweepSWV(),
-#                                               '-SWV_DONE-') #SWV.
-#         while True: #Loop for swv
-#             print("stuckswv" + str(system_data.measurements))
-#             event, values = window.read(10)
-#             system_data.plot_data()
-#             window['-TEST_TIME-'].update('Test time since valve turned: {}'.format(round(time.time()-system_data.inject_time)))
-#             window['-MEASUREMENT-'].update('SWV, measurement #{}'.format(system_data.measurements))
-#             window['-TIME-'].update('Measurement Time: {}'.format(round(time.time()-system_data.measurement_time)))
-
-#             if event in ('-SWV_DONE-', None):
-#                 break
-#             check_for_stop(pstat, pump, window, event)
-
-#         check_for_stop(pstat, pump, window, event)
-#         window.read(10)
-
-#         # Once measurements are complete, keep pumping
-#         if system_data.measurements >= system_data.n_measurements:
-#             system_data.time_end = time.time()
-#             break
-#     #TODOStep 3: Once measurement is complete, keep pummping
-#     # window['-TEST_STATUS-'].update('Pump ')
-#     restart(pstat, pump, window)
-
-# def cyclic_measurements(pstat, pump, window):
-#     pump.infuse()
-#     pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1])
-#     pump.stop()
-#     return
-
-# def pump_fluid(pump, window):
-#     pump.infuse()
-#     pump.stop()
-#     return
-
-# def chrono_measurements(pstat, pump, window):
-#     #start pump, output current
-#     pump.infuse()
-#     window['-TEST_STATUS-'].update('Initial flow-through phase. When system is ready (~60s), hit load sample to start the 5 second timer to load sample.')
-#     window['-START-'].update('Load Sample')
-
-#     #Step 1:Start pumping fluid until the user chooses to turn the valve
-#     window.perform_long_operation(lambda :
-#                                           pstat.deposition(system_data.initial_pump_time, system_data.e_dep, system_data.e_dep, [0,1]),
-#                                           '-INITIAL_DONE-') #Depose for 4 minutes and plot data. Wait until user hits load sample.
-#     while True: #Loop to start pumping and get user to turn valve
-#         window['-TEST_TIME-'].update('Pumping time: {}'.format(round(time.time()-system_data.start_time)))
-#         system_data.plot_data()
-#         if event in ('-START-', None):
-#             system_data.stop_pstat = True #Send flag to pstat to stop measurement
-
-#             #counts down for user to turn valve
-#             countdown_start = time.time()
-#             while time.time() - countdown_start < 5:
-#                 window['-TEST_STATUS-'].update('Load Sample in {} seconds'.format(5 - round(time.time() - countdown_start)))
-#                 window.read(10)
-#             window['-TEST_STATUS-'].update('Turn Sample Valve')
-#             window.read(10)
-#             system_data.inject_time = time.time() - system_data.start_time
-#             system_data.valve_turned = True
-#             break
-#         if event in ('INITIAL_DONE'):
-#             window['-TEST_STATUS-'].update('Pump flowed for {} minutes, please restart'.format(system_data.initial_pump_time / 60))
-#             window.read(10)
-#             restart(pstat, pump, window)
-#         check_for_stop(pstat, pump, window, event)
-#         window.read(10)
-
-#     system_data.stop_pstat = False #Unsend flag to pstat to stop measurement
-
-#     #Step 2: Once valve is turned, run chronoamp
-#     while True:
-#         window['-TEST_STATUS-'].update('Chronoamp Measurement Running')
-
-#         #Step 2a: Deposition
-#         pump.infuse()
-#         system_data.measurement_time = time.time()
-#         window.perform_long_operation(lambda :
-#                                               pstat.deposition(system_data.t_dep, system_data.e_dep, system_data.e_dep, [0,1]),
-#                                               '-DEPOSITION_DONE-') #Deposition.
-#         while True: #Loop for deposition
-#             system_data.plot_data()
-#             window['-TEST_TIME-'].update('Test time since valve turned: {}'.format(round(time.time()-system_data.inject_time)))
-#             if event in ('-DEPOSITION_DONE-', None):
-#                 pump.stop()
-#                 break
-#             check_for_stop(pstat, pump, window, event)
-#             window.read(10)
-#     restart(pstat, pump, window)

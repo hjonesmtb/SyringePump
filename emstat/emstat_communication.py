@@ -8,15 +8,7 @@ import math
 import numpy as np
 from system_data import System_Data
 
-#User inputs
-technique = 2 #square wave voltammetry
-cr_min = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 100uA, 6: 1mA, 7: 10mA, user input
-cr_max = 5 # max current range, user input
-cr = 3 #Starting current range, user input
-measure_i_forward_reverse = True #user input
 cell_on_post_measure = False #user input
-
-
 
 #emstat 3 constants
 dac_factor = 1.599 #DAC factor specific to emstat3
@@ -26,21 +18,15 @@ v_range = 3 #specific to emstat3
 
 class Emstat:
     def __init__(self, pstat_com, e_cond, t_cond, e_dep, t_dep, t_equil, e_begin, e_end, e_step, amplitude, frequencies, system_data):
-        # print(frequencies)
         try:
-            #self.ser = serial.Serial('COM{}'.format(pstat_com), baudrate=230400, timeout = 1)
             self.ser = serial.Serial(str(pstat_com), baudrate=230400, timeout = 1)
             if self.ser.isOpen():
                 print("port opened successfully")
         except:
-            try:
-                self.ser = serial.Serial(pstat_com, baudrate=230400, timeout = 1)
-                if self.ser.isOpen():
-                    print("port opened successfully")
-            except:
-                print("COM port is not available")
-        # print(frequencies)
-        # self.swv_params = self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequencies, e_cond, t_cond)
+            self.ser = serial.Serial(pstat_com, baudrate=230400, timeout = 1)
+            if self.ser.isOpen():
+                print("port opened successfully")
+
         self.deposition_potential = e_dep
         self.system_data = system_data
 
@@ -61,7 +47,7 @@ class Emstat:
 
     '''Runs deposition on two electrodes, returns an array with potential, current, noise, overload and underload data'''
     # Runs constant voltage measurement at potential V for time_chrono s with n multiplexer channels
-    def deposition(self, dep_time, eDep_e1, eDep_e2, sensing_electrode):
+    def deposition(self, dep_time, eDep_e1, eDep_e2, sensing_electrode, pump = False):
         #Sets potential on non-sensing electrode:
         if sensing_electrode == [0,1]:
             n_channels = 1
@@ -82,21 +68,14 @@ class Emstat:
         n_channels = 1
 
         if n_channels == 1:
-            # self.emstat_ready('c')
-            # self.sendData('m' + nonsensing_channel)
-            # command = self.potential_to_cmd(nonsensing_dep, False)
-            # command = 'D' + command
-            # self.sendData(command)
-
-            # self.sendData('m' + sensing_channel)
-            self.chronoamp(sensing_dep, n_channels, dep_time)
+            self.chronoamp(sensing_dep, n_channels, dep_time, pump)
 
         if n_channels == 2:
             self.sendData('m' + sensing_channel)
-            self.chronoamp(sensing_dep, n_channels, dep_time)
+            self.chronoamp(sensing_dep, n_channels, dep_time, pump)
 
     #Runs chronoamp measurement
-    def chronoamp(self, potential, n_channels, dep_time):
+    def chronoamp(self, potential, n_channels, dep_time, pump):
         zero = self.potential_to_cmd(0) #convert 0V to bytes
         e_constant = self.potential_to_cmd(potential) #convert set potential to bytes
         tInt = 1 / self.system_data.frequency_dep #set tInt. Cannot be less than 0.25s if multiplexer present
@@ -115,33 +94,11 @@ class Emstat:
         L_command = ("technique=7\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
         {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstby={}\nnPoints= \
         {}\ntInt={}\nmux_delay=0\nnmux={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
-        (zero, 0, zero, 0, 0, cr_min, cr_max, \
-        cr, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
-
-        # (eCond = zero, tCond = 0, eDep = zero, tDep = 0, tEquil = 0, cr_min, cr_max, \
-        # cr, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
+        (zero, 0, zero, 0, self.system_data.t_equil_deposition, self.system_data.cr_min, self.system_data.cr_max, \
+        self.system_data.cr_begin, e_constant,e_constant, nPoints, tInt, n_channels, d1, d16, options, nadmean))
 
         self.emstat_ready("L")
-        # L_command = "technique=7\nEbegin=40272\nnPoints=41\ntInt=71369712\nnadmean=7\nd1=5\nd16=1\ncr_min=1\ncr_max=5\ncr=3\nEcond=32768\nEdep=32768\ntCond=0\ntDep=0\ntEquil=0\noptions=0"
-#         L_command_1 = "technique=7\nEbegin=40272
-# nPoints=11
-# tInt=128
-# nadmean=9
-# d1=5
-# d16=1
-# cr_min=1
-# cr_max=5
-# cr=3
-# Econd=32768
-# Edep=32768
-# tCond=0
-# tDep=0
-# tEquil=0
-# options=0
-# *
         self.sendData(L_command)
-
-        print(L_command)
 
         if n_channels > 1:
             P_data = []
@@ -155,11 +112,9 @@ class Emstat:
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
-                # print(package)
                 if len(package) != 8*n_channels: #Check to make sure packages are the right length
                     raise ValueError('P package not 8*n_channels characters')
                 P_data.append(package)
-                #time_log.append(time.time()-starttime)
         else:
             potential_dep = [] #array to store potential from deposition for this run
             current_dep = [] #array to store current from deposition for this run
@@ -174,6 +129,8 @@ class Emstat:
                 if self.check_for_stop():
                     break
                 char = self.readData(1).decode()
+            if pump != False:
+                pump.infuse()
             while char != '*': #end condition
                 if self.check_for_stop():
                     break
@@ -185,19 +142,15 @@ class Emstat:
                     if char != "":
                         package = package + char
                     char = self.readData(1).decode()
-                #print(package)
                 if len(package) != 16: #Check to make sure packages are the right length
                     print('U package not 16 characters')
                 else:
                     time_log.append(time.time()-self.system_data.start_time)
-                    # print("wrote to time")
                     potential, current, current_overload, current_underload = self.process_U(package)
                     potential_dep.append(potential)
                     current_dep.append(current)
-                    # print("wrote to current")
                     overload_dep.append(current_overload)
                     underload_dep.append(current_underload)
-                    # print("dep", potential, current)
                     self.system_data.write_dep(time_log, potential_dep, current_dep, overload_dep, underload_dep)
         return
 
@@ -211,8 +164,6 @@ class Emstat:
         while char != key:
             char = self.readData(1).decode()
             count += 1
-            # if count > 100:
-            #     self.sendData(key) #Try again
         return
 
     '''Checks if pstat needs to stop'''
@@ -296,10 +247,7 @@ class Emstat:
         T_data = [] #string array to store T packages from measurement (during steady state)
         U_data = [] #string array to store U packages from measurement (during SWV)
 
-        # print('frequency', self.system_data.frequencies[self.system_data.measurements%3])
-        # self.format_swv_parameters(t_equil, e_begin, e_end, e_step, amplitude, frequencies, e_cond, t_cond)
         swv_params = self.format_swv_parameters(self.system_data.t_equil, self.system_data.e_begin, self.system_data.e_end, self.system_data.e_step, self.system_data.amplitude, self.system_data.frequencies[frequency_index], self.system_data.e_cond, self.system_data.t_cond)
-
 
         self.sendData("J") # disables idle packages
         self.ser.flush() #clears the buffer
@@ -377,7 +325,7 @@ class Emstat:
     def format_swv_parameters(self, t_equil, e_begin, e_end, e_step, amplitude, freq, e_cond, t_cond):
         #options
         options = 0
-        if measure_i_forward_reverse: options += 1024
+        if self.system_data.measure_i_forward_reverse: options += 1024
         if cell_on_post_measure: options += 4
         #n_points
         nPoints = int((e_end - e_begin) / e_step + 1)
@@ -395,12 +343,11 @@ class Emstat:
         #tInt
         tInt = self.tint_calc(1 / freq)
         #format ascii command
-        L_command = ("technique={}\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
+        L_command = ("technique=2\nEcond={}\ntCond={}\nEdep={}\ntDep={}\ntEquil= \
         {}\ncr_min={}\ncr_max={}\ncr={}\nEbegin={}\nEstep={}\nEpulse={}\nnPoints= \
         {}\ntInt={}\ntPulse={}\nd1={}\nd16={}\noptions={}\nnadmean={}\n*".format \
-        (technique, e_cond, t_cond, 0, 0, t_equil, cr_min, cr_max, cr, Ebegin, \
+        (e_cond, t_cond, 0, 0, t_equil, self.system_data.cr_min, self.system_data.cr_max, self.system_data.cr_begin, Ebegin, \
         Estep, Epulse, nPoints, tInt, tPulse, d1, d16, options, nadmean))
-        # print(L_command)
         return L_command
 
     #Calculates d1, d16 and nadmean from tmeas. See p. 24 of comm protocol
