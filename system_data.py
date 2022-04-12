@@ -10,6 +10,8 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+plt.style.use('dark_background')
+sg.theme('DarkBlack')
 
 SYRINGE_DIAM = 20  # mm
 FLOWRATE_CONVERSION = 1 / 1000 / 60  # 1mL/1000uL*1min/60seconds
@@ -20,30 +22,30 @@ TEST_TYPES = ["Stop-Flow", "Chronoamperometry"]
 DATE = datetime.now().strftime("%y-%m-%d_%H%M")
 TEST_NAME = TEST_TYPES[0]+ "_" + DATE
 PUMP_BAUD = 1200
-PUMP_COM = "COM7"
-PSTAT_COM = "COM6"
+PUMP_COM = "COM3"
+PSTAT_COM = "COM7"
 E_CONDITION = 0  # V
 T_CONDITION = 0  # s
-E_DEPOSITION = 0.8  # V
+E_DEPOSITION = 0.2  # V
 T_EQUILIBRATION = 2  # s
 T_EQUILIBRATION_DEPOSITION = 2 #s
-E_BEGIN = -0.4  # V
-E_STOP = 0.4  # V
+E_BEGIN = 0.2  # V
+E_STOP = 0.6  # V
 E_STEP = 0.005  # V
 AMPLITUDE = 0.01  # V
 FREQUENCY_DEP = 10 #Hz
-FREQUENCIES = [37, 25, 7] # Hz
-FLOW_RATE = 1000  # uL/min
+FREQUENCIES = [7, 0, 0] # Hz
+FLOW_RATE = 200  # uL/min
 INFUSION_VOLUME = 1  # mL
-N_MEASUREMENTS = 10
+N_MEASUREMENTS = 20
 N_ELECTRODES = 1
 T_DEPOSITION = INFUSION_VOLUME / N_MEASUREMENTS / (FLOW_RATE * FLOWRATE_CONVERSION)
-STEP_VOLUME = INFUSION_VOLUME / N_MEASUREMENTS
+STEP_VOLUME = 50 / 1000
 FIGSIZE = (20,12)
 PATH = os.getcwd()
 PUMP_SCALE = 20 #cuts off first few points of the first deposition during stop flow.
 MAX_PLOTS = 5
-INITIAL_PUMP_TIME = 240
+INITIAL_PUMP_TIME = 24000
 CR_MIN = 1 # minimum current range, 0: 1nA  1: 10nA, 2: 100nA, 3: 1 uA, 4: 10uA, 5: 100uA, 6: 1mA, 7: 10mA, user input
 CR_MAX = 5 # max current range, user input
 CR_BEGIN = 3 #Starting current range, user input
@@ -247,7 +249,7 @@ class System_Data:
         return system_data
 
     def plot_data(self):
-        cmap = cm.get_cmap('gist_rainbow', int(self.n_measurements))
+        cmap = cm.get_cmap('rainbow', int(self.n_measurements))
         colour = cmap((self.measurements / self.n_measurements))
         if self.test_type == 'Stop-Flow':
             self.ax_swv[0].set_title('Square Wave Current at ' + str(self.frequencies[0])+ 'Hz')

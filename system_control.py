@@ -63,7 +63,7 @@ def test_settings_gui_format(usbs, port_name, system_data):
             [sg.Text('Syringe Diameter [mm]', size=(20,1), font='Helvetica 14'), sg.InputText(system_data.syringe_diam, key=('-SyringeDiam-'))],
             [sg.Text('Syringe Pump Port', size=(20, 1), font='Helvetica 14'), sg.Combo(port_name, size=(20,1),key=('-PumpPort-'), default_value=system_data.pump_com)],
             [sg.Text('Pstat Port', size=(20, 1), font='Helvetica 14'), sg.Combo(port_name, size=(20,1), default_value=system_data.pstat_com, key=("-PStatPort-"))],
-            [sg.Text('List of Detected Ports', size=(20, 1), font='Helvetica 14'), sg.Listbox(usbs, size=(40, len(usbs)), key=("-usbs-"))],
+            #[sg.Text('List of Detected Ports', size=(20, 1), font='Helvetica 14'), sg.Listbox(usbs, size=(40, len(usbs)), key=("-usbs-"))],
             [sg.Canvas(key='-controls_cv-')],
             [sg.Button('Next', size=(15, 1), pad=((280, 0), 3), font='Helvetica 14')],
             ]
@@ -153,7 +153,7 @@ def parameters_Format(system_data):
             [sg.Button('Back', size=(15, 1), font='Helvetica 14'),
              sg.pin(sg.Button('Start', size=(15, 1), font='Helvetica 14', k = '-START-')),
              sg.pin(sg.Button('Stop', size=(15, 1), font='Helvetica 14'))],
-            [sg.Text(key='-TEST_STATUS-', size=(30, 3), font='Helvetica 20')],
+            [sg.Text(key='-TEST_STATUS-', size=(30, 1), font='Helvetica 14')],
             [sg.Text('Pump Control', size=(20, 1), justification='left', font='Helvetica 20')],
             [sg.Text('Pump Speed [ul/min]', size=(30, 1), font='Helvetica 12'), sg.InputText(system_data.initial_pump_speed, key=('-PumpSpeed-'))],
             [sg.Button('Flow', size=(15, 1), font='Helvetica 14', k = '-FLOW-'),sg.pin(sg.Button('Stop Pump', size=(15, 1), font='Helvetica 14', k = '-STOP_FLOW-'))
